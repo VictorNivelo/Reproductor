@@ -5,6 +5,7 @@ import time
 import json
 import os
 
+
 class ControladorReproductor:
     def __init__(self, modelo, vista):
         self.modelo = modelo
@@ -29,24 +30,23 @@ class ControladorReproductor:
         self.RETROCEDER_EVENTO = pygame.USEREVENT + 2
 
     def iniciar(self):
-        self.vista.boton_seleccionar_carpeta.config(command=self.seleccionar_carpeta)
-        self.vista.boton_reproducir_pausar.config(command=self.reproducir_pausar)
-        self.vista.boton_anterior.config(command=self.anterior)
-        self.vista.boton_siguiente.config(command=self.siguiente)
-        self.vista.boton_aleatorio.config(command=self.alternar_aleatorio)
-        self.vista.boton_repetir.config(command=self.alternar_repetir)
-        self.vista.boton_favorito.config(command=self.alternar_favorito)
-        self.vista.boton_me_gusta.config(command=self.alternar_me_gusta)
-        self.vista.volumen_slider.config(command=self.cambiar_volumen)
-        self.vista.boton_mute.config(command=self.alternar_mute)
-        self.vista.lista_canciones.bind("<Double-1>", self.seleccionar_cancion)
-        self.vista.boton_nueva_lista.config(command=self.crear_lista_personalizada)
-        self.vista.boton_eliminar_lista.config(command=self.eliminar_lista_personalizada)
-        self.vista.boton_modificar_lista.config(command=self.modificar_lista_personalizada)
-        self.vista.boton_mostrar_cola.config(command=self.mostrar_cola)
-        self.vista.boton_adelantar.config(command=self.adelantar_10_segundos)
-        self.vista.boton_retroceder.config(command=self.retroceder_10_segundos)
-        self.vista.boton_agregar_cola.config(command=self.agregar_cancion_actual_a_cola)
+        self.vista.boton_seleccionar_carpeta.configure(command=self.seleccionar_carpeta)
+        self.vista.boton_reproducir_pausar.configure(command=self.reproducir_pausar)
+        self.vista.boton_anterior.configure(command=self.anterior)
+        self.vista.boton_siguiente.configure(command=self.siguiente)
+        self.vista.boton_aleatorio.configure(command=self.alternar_aleatorio)
+        self.vista.boton_repetir.configure(command=self.alternar_repetir)
+        self.vista.boton_favorito.configure(command=self.alternar_favorito)
+        self.vista.boton_me_gusta.configure(command=self.alternar_me_gusta)
+        self.vista.volumen_slider.configure(command=self.cambiar_volumen)
+        self.vista.boton_mute.configure(command=self.alternar_mute)
+        self.vista.boton_nueva_lista.configure(command=self.crear_lista_personalizada)
+        self.vista.boton_eliminar_lista.configure(command=self.eliminar_lista_personalizada)
+        self.vista.boton_modificar_lista.configure(command=self.modificar_lista_personalizada)
+        self.vista.boton_mostrar_cola.configure(command=self.mostrar_cola)
+        self.vista.boton_adelantar.configure(command=self.adelantar_10_segundos)
+        self.vista.boton_retroceder.configure(command=self.retroceder_10_segundos)
+        self.vista.boton_agregar_cola.configure(command=self.agregar_cancion_actual_a_cola)
         self.cargar_canciones()
         self.actualizar_iconos_me_gusta_favoritos()
         threading.Thread(target=self.manejar_eventos, daemon=True).start()
@@ -109,25 +109,25 @@ class ControladorReproductor:
         if not self.modelo.canciones:
             return
         if not self.reproduciendo:
-            cancion_actual = self.modelo.canciones[self.indice_actual]
-            self.vista.actualizar_cancion(cancion_actual)
-            pygame.mixer.music.load(cancion_actual.ruta)
-            pygame.mixer.music.set_volume(self.volumen)
-            pygame.mixer.music.play()
+            if self.pausado:
+                pygame.mixer.music.unpause()
+                self.tiempo_inicio = time.time() - self.posicion_actual
+            else:
+                cancion_actual = self.modelo.canciones[self.indice_actual]
+                pygame.mixer.music.load(cancion_actual.ruta)
+                pygame.mixer.music.play(start=self.posicion_actual)
+                self.tiempo_inicio = time.time() - self.posicion_actual
             self.reproduciendo = True
             self.pausado = False
-            self.tiempo_inicio = time.time()
-            self.posicion_actual = 0
+            self.vista.actualizar_boton_reproducir_pausar(self.reproduciendo, self.pausado)
             threading.Thread(target=self.actualizar_progreso, daemon=True).start()
-        elif self.pausado:
-            pygame.mixer.music.unpause()
-            self.pausado = False
-            self.tiempo_inicio = time.time()
         else:
             pygame.mixer.music.pause()
+            tiempo_actual = time.time()
+            self.posicion_actual += tiempo_actual - self.tiempo_inicio
+            self.reproduciendo = False
             self.pausado = True
-            self.posicion_actual += time.time() - self.tiempo_inicio
-        self.vista.actualizar_boton_reproducir_pausar(self.reproduciendo, self.pausado)
+            self.vista.actualizar_boton_reproducir_pausar(self.reproduciendo, self.pausado)
 
     def anterior(self):
         if self.modelo.canciones:
@@ -165,13 +165,12 @@ class ControladorReproductor:
 
     def actualizar_progreso(self):
         while self.reproduciendo:
-            if not self.pausado:
-                tiempo_actual = time.time() - self.tiempo_inicio + self.posicion_actual
-                duracion_total = self.modelo.canciones[self.indice_actual].duracion
-                progreso = tiempo_actual / duracion_total
-                self.vista.actualizar_progreso(progreso, tiempo_actual)
+            tiempo_actual = time.time()
+            transcurrido = tiempo_actual - self.tiempo_inicio + self.posicion_actual
+            duracion_total = self.modelo.canciones[self.indice_actual].duracion
+            progreso = min(transcurrido / duracion_total, 1.0)
+            self.vista.actualizar_progreso(progreso, transcurrido)
             time.sleep(0.1)
-        self.vista.actualizar_progreso(0, 0)
 
     def manejar_eventos(self):
         clock = pygame.time.Clock()
@@ -307,24 +306,40 @@ class ControladorReproductor:
         pygame.event.post(pygame.event.Event(self.RETROCEDER_EVENTO))
 
     def adelantar_10_segundos_interno(self):
-        if self.reproduciendo:
-            tiempo_actual = time.time() - self.tiempo_inicio + self.posicion_actual
-            nueva_posicion = min(tiempo_actual + 10, self.modelo.canciones[self.indice_actual].duracion)
-            pygame.mixer.music.stop()
-            pygame.mixer.music.play(start=nueva_posicion)
-            self.tiempo_inicio = time.time()
+        if self.modelo.canciones:
+            tiempo_actual = time.time()
+            if self.reproduciendo:
+                transcurrido = tiempo_actual - self.tiempo_inicio + self.posicion_actual
+            else:
+                transcurrido = self.posicion_actual
+            nueva_posicion = min(transcurrido + 10, self.modelo.canciones[self.indice_actual].duracion)
+            if self.reproduciendo:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load(self.modelo.canciones[self.indice_actual].ruta)
+                pygame.mixer.music.play(start=nueva_posicion)
+                self.tiempo_inicio = time.time()
             self.posicion_actual = nueva_posicion
-            self.actualizar_progreso()
+            self.vista.actualizar_progreso(
+                nueva_posicion / self.modelo.canciones[self.indice_actual].duracion, nueva_posicion
+            )
 
     def retroceder_10_segundos_interno(self):
-        if self.reproduciendo:
-            tiempo_actual = time.time() - self.tiempo_inicio + self.posicion_actual
-            nueva_posicion = max(tiempo_actual - 10, 0)
-            pygame.mixer.music.stop()
-            pygame.mixer.music.play(start=nueva_posicion)
-            self.tiempo_inicio = time.time()
+        if self.modelo.canciones:
+            tiempo_actual = time.time()
+            if self.reproduciendo:
+                transcurrido = tiempo_actual - self.tiempo_inicio + self.posicion_actual
+            else:
+                transcurrido = self.posicion_actual
+            nueva_posicion = max(transcurrido - 10, 0)
+            if self.reproduciendo:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load(self.modelo.canciones[self.indice_actual].ruta)
+                pygame.mixer.music.play(start=nueva_posicion)
+                self.tiempo_inicio = time.time()
             self.posicion_actual = nueva_posicion
-            self.actualizar_progreso()
+            self.vista.actualizar_progreso(
+                nueva_posicion / self.modelo.canciones[self.indice_actual].duracion, nueva_posicion
+            )
 
     def agregar_cancion_actual_a_cola(self):
         cancion_actual = self.modelo.canciones[self.indice_actual]
