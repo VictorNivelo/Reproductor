@@ -1,7 +1,7 @@
-from PIL import Image, ImageTk
 import customtkinter as ctk
+from PIL import Image
 import tkinter as tk
-from customtkinter import CTkImage
+from tkinter import ttk
 
 
 class VistaReproductor:
@@ -66,23 +66,44 @@ class VistaReproductor:
         self.boton_mute.pack()
         self.boton_mostrar_cola = ctk.CTkButton(self.frame_izquierdo, text="Mostrar Cola")
         self.boton_mostrar_cola.pack(pady=10)
-        self.notebook = ctk.CTkTabview(self.frame_derecho)
+        self.notebook = ttk.Notebook(self.frame_derecho)
         self.notebook.pack(fill=tk.BOTH, expand=True)
-        self.tab_todas = self.notebook.add("Todas")
-        self.tab_me_gusta = self.notebook.add("Me gusta")
-        self.tab_favoritos = self.notebook.add("Favoritos")
-        self.tab_personalizadas = self.notebook.add("Listas personalizadas")
-        self.lista_canciones = tk.Listbox(self.tab_todas, bg="#2E2E2E", fg="#FFFFFF", selectbackground="#1F538D")
+        self.tab_todas = ttk.Frame(self.notebook)
+        self.tab_me_gusta = ttk.Frame(self.notebook)
+        self.tab_favoritos = ttk.Frame(self.notebook)
+        self.tab_personalizadas = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_todas, text="Todas")
+        self.notebook.add(self.tab_me_gusta, text="Me gusta")
+        self.notebook.add(self.tab_favoritos, text="Favoritos")
+        self.notebook.add(self.tab_personalizadas, text="Listas personalizadas")
+        self.lista_canciones = ttk.Treeview(
+            self.tab_todas, columns=("Título", "Artista", "Álbum", "Duración"), show="headings"
+        )
+        self.lista_canciones.heading("Título", text="Título")
+        self.lista_canciones.heading("Artista", text="Artista")
+        self.lista_canciones.heading("Álbum", text="Álbum")
+        self.lista_canciones.heading("Duración", text="Duración")
         self.lista_canciones.pack(fill=tk.BOTH, expand=True)
-        self.lista_me_gusta = tk.Listbox(self.tab_me_gusta, bg="#2E2E2E", fg="#FFFFFF", selectbackground="#1F538D")
+        self.lista_me_gusta = ttk.Treeview(
+            self.tab_me_gusta, columns=("Título", "Artista", "Álbum", "Duración"), show="headings"
+        )
+        self.lista_me_gusta.heading("Título", text="Título")
+        self.lista_me_gusta.heading("Artista", text="Artista")
+        self.lista_me_gusta.heading("Álbum", text="Álbum")
+        self.lista_me_gusta.heading("Duración", text="Duración")
         self.lista_me_gusta.pack(fill=tk.BOTH, expand=True)
-        self.lista_favoritos = tk.Listbox(self.tab_favoritos, bg="#2E2E2E", fg="#FFFFFF", selectbackground="#1F538D")
+        self.lista_favoritos = ttk.Treeview(
+            self.tab_favoritos, columns=("Título", "Artista", "Álbum", "Duración"), show="headings"
+        )
+        self.lista_favoritos.heading("Título", text="Título")
+        self.lista_favoritos.heading("Artista", text="Artista")
+        self.lista_favoritos.heading("Álbum", text="Álbum")
+        self.lista_favoritos.heading("Duración", text="Duración")
         self.lista_favoritos.pack(fill=tk.BOTH, expand=True)
         self.frame_listas_personalizadas = ctk.CTkFrame(self.tab_personalizadas)
         self.frame_listas_personalizadas.pack(fill=tk.BOTH, expand=True)
-        self.lista_personalizadas = tk.Listbox(
-            self.frame_listas_personalizadas, bg="#2E2E2E", fg="#FFFFFF", selectbackground="#1F538D"
-        )
+        self.lista_personalizadas = ttk.Treeview(self.frame_listas_personalizadas, columns=("Nombre",), show="headings")
+        self.lista_personalizadas.heading("Nombre", text="Nombre de la lista")
         self.lista_personalizadas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.frame_botones_listas = ctk.CTkFrame(self.frame_listas_personalizadas)
         self.frame_botones_listas.pack(side=tk.RIGHT, fill=tk.Y)
@@ -94,6 +115,14 @@ class VistaReproductor:
         self.boton_modificar_lista.pack(pady=5)
         self.boton_seleccionar_carpeta = ctk.CTkButton(self.frame_derecho, text="Seleccionar carpeta")
         self.boton_seleccionar_carpeta.pack(pady=10)
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+        self.style.configure(
+            "Treeview", background="#2a2d2e", foreground="white", rowheight=25, fieldbackground="#343638"
+        )
+        self.style.map("Treeview", background=[("selected", "#22559b")])
+        self.style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
+        self.style.map("Treeview.Heading", background=[("active", "#3484F0")])
 
     def actualizar_cancion(self, cancion):
         self.titulo.configure(text=cancion.titulo)
@@ -105,7 +134,7 @@ class VistaReproductor:
         self.tiempo_total.configure(text=f"{int(cancion.duracion // 60)}:{int(cancion.duracion % 60):02d}")
         if cancion.caratula:
             image = cancion.caratula.resize((300, 300), Image.LANCZOS)
-            photo = CTkImage(light_image=image, dark_image=image, size=(300, 300))
+            photo = ctk.CTkImage(light_image=image, dark_image=image, size=(300, 300))
             self.caratula.configure(image=photo)
             self.caratula.image = photo
         else:
@@ -113,24 +142,51 @@ class VistaReproductor:
             self.caratula.image = None
 
     def actualizar_lista_canciones(self, canciones):
-        self.lista_canciones.delete(0, tk.END)
+        self.lista_canciones.delete(*self.lista_canciones.get_children())
         for cancion in canciones:
-            self.lista_canciones.insert(tk.END, f"{cancion.titulo} - {cancion.artista}")
+            self.lista_canciones.insert(
+                "",
+                "end",
+                values=(
+                    cancion.titulo,
+                    cancion.artista,
+                    cancion.album,
+                    f"{int(cancion.duracion // 60)}:{int(cancion.duracion % 60):02d}",
+                ),
+            )
 
     def actualizar_lista_me_gusta(self, canciones):
-        self.lista_me_gusta.delete(0, tk.END)
+        self.lista_me_gusta.delete(*self.lista_me_gusta.get_children())
         for cancion in canciones:
-            self.lista_me_gusta.insert(tk.END, f"{cancion.titulo} - {cancion.artista}")
+            self.lista_me_gusta.insert(
+                "",
+                "end",
+                values=(
+                    cancion.titulo,
+                    cancion.artista,
+                    cancion.album,
+                    f"{int(cancion.duracion // 60)}:{int(cancion.duracion % 60):02d}",
+                ),
+            )
 
     def actualizar_lista_favoritos(self, canciones):
-        self.lista_favoritos.delete(0, tk.END)
+        self.lista_favoritos.delete(*self.lista_favoritos.get_children())
         for cancion in canciones:
-            self.lista_favoritos.insert(tk.END, f"{cancion.titulo} - {cancion.artista}")
+            self.lista_favoritos.insert(
+                "",
+                "end",
+                values=(
+                    cancion.titulo,
+                    cancion.artista,
+                    cancion.album,
+                    f"{int(cancion.duracion // 60)}:{int(cancion.duracion % 60):02d}",
+                ),
+            )
 
     def actualizar_listas_personalizadas(self, listas):
-        self.lista_personalizadas.delete(0, tk.END)
+        self.lista_personalizadas.delete(*self.lista_personalizadas.get_children())
         for nombre in listas.keys():
-            self.lista_personalizadas.insert(tk.END, nombre)
+            self.lista_personalizadas.insert("", "end", values=(nombre,))
 
     def actualizar_progreso(self, valor, tiempo_actual):
         self.barra_progreso.set(valor)
@@ -176,7 +232,16 @@ class VistaReproductor:
         ventana_cola = ctk.CTkToplevel(self.root)
         ventana_cola.title("Cola de reproducción")
         ventana_cola.geometry("400x300")
-        lista_cola = tk.Listbox(ventana_cola, bg="#2E2E2E", fg="#FFFFFF", selectbackground="#1F538D")
+
+        lista_cola = ttk.Treeview(ventana_cola, columns=("Título", "Artista"), show="headings")
+        lista_cola.heading("Título", text="Título")
+        lista_cola.heading("Artista", text="Artista")
         lista_cola.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         for cancion in cola:
-            lista_cola.insert(tk.END, f"{cancion.titulo} - {cancion.artista}")
+            lista_cola.insert("", "end", values=(cancion.titulo, cancion.artista))
+
+    def obtener_cancion_seleccionada(self, lista):
+        seleccion = lista.selection()
+        if seleccion:
+            return lista.item(seleccion[0])["values"]
+        return None

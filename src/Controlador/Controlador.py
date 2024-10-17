@@ -47,8 +47,19 @@ class ControladorReproductor:
         self.vista.boton_adelantar.configure(command=self.adelantar_10_segundos)
         self.vista.boton_retroceder.configure(command=self.retroceder_10_segundos)
         self.vista.boton_agregar_cola.configure(command=self.agregar_cancion_actual_a_cola)
+        self.vista.lista_canciones.bind("<<TreeviewSelect>>", self.seleccionar_cancion)
+        self.vista.lista_me_gusta.bind("<<TreeviewSelect>>", self.seleccionar_cancion)
+        self.vista.lista_favoritos.bind("<<TreeviewSelect>>", self.seleccionar_cancion)
+        if hasattr(self.vista, 'lista_personalizadas'):
+            self.vista.lista_personalizadas.bind("<<TreeviewSelect>>", self.seleccionar_lista_personalizada)
         self.cargar_canciones()
         self.actualizar_iconos_me_gusta_favoritos()
+        self.vista.volumen_slider.set(self.volumen * 100)
+        self.vista.actualizar_icono_volumen(self.volumen)
+        if self.modo_aleatorio:
+            self.vista.actualizar_boton_aleatorio(True)
+        if self.modo_repetir:
+            self.vista.actualizar_boton_repetir(True)
         threading.Thread(target=self.manejar_eventos, daemon=True).start()
 
     def cargar_configuracion(self):
@@ -57,24 +68,49 @@ class ControladorReproductor:
         os.makedirs("datos/listas/personalizadas", exist_ok=True)
         if os.path.exists("datos/configuracion/ajustes.json"):
             with open("datos/configuracion/ajustes.json", "r") as f:
-                config = json.load(f)
-                self.modelo.directorio = config.get("directorio", "")
-                self.volumen = config.get("volumen", 1.0)
+                try:
+                    config = json.load(f)
+                    self.modelo.directorio = config.get("directorio", "")
+                    self.volumen = config.get("volumen", 1.0)
+                except json.JSONDecodeError:
+                    print("Error al cargar ajustes.json. Usando valores predeterminados.")
         if os.path.exists("datos/listas/favoritos.json"):
             with open("datos/listas/favoritos.json", "r") as f:
-                self.favoritos = set(json.load(f))
+                try:
+                    self.favoritos = set(json.load(f))
+                except json.JSONDecodeError:
+                    print("Error al cargar favoritos.json. Inicializando vacío.")
+                    self.favoritos = set()
         if os.path.exists("datos/listas/me_gusta.json"):
             with open("datos/listas/me_gusta.json", "r") as f:
-                self.me_gusta = set(json.load(f))
+                try:
+                    self.me_gusta = set(json.load(f))
+                except json.JSONDecodeError:
+                    print("Error al cargar me_gusta.json. Inicializando vacío.")
+                    self.me_gusta = set()
         if os.path.exists("datos/listas/personalizadas"):
             for archivo in os.listdir("datos/listas/personalizadas"):
                 if archivo.endswith(".json"):
                     nombre_lista = os.path.splitext(archivo)[0]
                     with open(f"datos/listas/personalizadas/{archivo}", "r") as f:
-                        self.listas_personalizadas[nombre_lista] = json.load(f)
+                        try:
+                            self.listas_personalizadas[nombre_lista] = json.load(f)
+                        except json.JSONDecodeError:
+                            print(f"Error al cargar {archivo}. Inicializando vacío.")
+                            self.listas_personalizadas[nombre_lista] = []
         if os.path.exists("datos/listas/cola.json"):
             with open("datos/listas/cola.json", "r") as f:
-                self.cola_reproduccion = json.load(f)
+                contenido = f.read().strip()
+                if contenido:
+                    try:
+                        rutas_cola = json.loads(contenido)
+                        self.cola_reproduccion = [self.modelo.obtener_cancion_por_ruta(ruta) for ruta in rutas_cola if self.modelo.obtener_cancion_por_ruta(ruta) is not None]
+                    except json.JSONDecodeError:
+                        print("Error al cargar cola.json. Inicializando vacío.")
+                        self.cola_reproduccion = []
+                else:
+                    print("cola.json está vacío. Inicializando cola vacía.")
+                    self.cola_reproduccion = []
 
     def guardar_configuracion(self):
         config = {"directorio": self.modelo.directorio, "volumen": self.volumen}
@@ -88,7 +124,7 @@ class ControladorReproductor:
             with open(f"datos/listas/personalizadas/{nombre}.json", "w") as f:
                 json.dump(canciones, f)
         with open("datos/listas/cola.json", "w") as f:
-            json.dump(self.cola_reproduccion, f)
+            json.dump([cancion.ruta for cancion in self.cola_reproduccion], f)
 
     def seleccionar_carpeta(self):
         ruta = self.vista.seleccionar_directorio()
@@ -104,6 +140,13 @@ class ControladorReproductor:
             self.actualizar_listas_especiales()
             if self.modelo.canciones:
                 self.vista.actualizar_cancion(self.modelo.canciones[0])
+    
+    def actualizar_lista_canciones(self, canciones, lista=None):
+        if lista is None:
+            lista = self.lista_canciones
+        lista.delete(*lista.get_children())
+        for cancion in canciones:
+            lista.insert("", "end", values=(cancion.titulo, cancion.artista, cancion.album, f"{int(cancion.duracion // 60)}:{int(cancion.duracion % 60):02d}"))
 
     def reproducir_pausar(self):
         if not self.modelo.canciones:
@@ -152,10 +195,25 @@ class ControladorReproductor:
         self.guardar_configuracion()
 
     def seleccionar_cancion(self, event):
-        indice = self.vista.lista_canciones.curselection()[0]
-        self.indice_actual = indice
-        self.detener()
-        self.reproducir_pausar()
+        lista_actual = event.widget
+        valores = self.vista.obtener_cancion_seleccionada(lista_actual)
+        if valores:
+            titulo, artista = valores[0], valores[1]
+            cancion = next((c for c in self.modelo.canciones if c.titulo == titulo and c.artista == artista), None)
+            if cancion:
+                self.indice_actual = self.modelo.canciones.index(cancion)
+                self.vista.actualizar_cancion(cancion)
+                self.detener()
+                self.reproducir_pausar()
+
+    def seleccionar_lista_personalizada(self, event):
+        seleccion = self.vista.lista_personalizadas.selection()
+        if seleccion:
+            nombre_lista = self.vista.lista_personalizadas.item(seleccion[0])['values'][0]
+            if nombre_lista in self.listas_personalizadas:
+                canciones = [self.modelo.obtener_cancion_por_ruta(ruta) for ruta in self.listas_personalizadas[nombre_lista]]
+                canciones = [c for c in canciones if c is not None]
+                self.vista.actualizar_lista_canciones(canciones)
 
     def detener(self):
         if self.reproduciendo:
