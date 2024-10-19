@@ -1,16 +1,15 @@
-import customtkinter as ctk
 from Controlador.Controlador import ControladorReproductor
 from Vista.Vista import VistaReproductor
 from Modelo.Cancion import Biblioteca
+import tkinter as tk
 
 
 def main():
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("blue")
-    root = ctk.CTk()
+    root = tk.Tk()
     modelo = Biblioteca()
-    vista = VistaReproductor(root)
-    controlador = ControladorReproductor(modelo, vista)
+    controlador = ControladorReproductor(modelo, None)
+    vista = VistaReproductor(root, controlador)
+    controlador.vista = vista
     controlador.iniciar()
     root.mainloop()
 

@@ -71,6 +71,17 @@ class Cancion:
         except:
             return None
 
+    def to_dict(self):
+        return {
+            "titulo": self.titulo,
+            "artista": self.artista,
+            "album": self.album,
+            "año": self.año,
+            "numero_pista": self.numero_pista,
+            "duracion": self.duracion,
+            "ruta": self.ruta,
+        }
+
 
 class Biblioteca:
     def __init__(self):
