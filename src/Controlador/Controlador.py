@@ -297,6 +297,7 @@ class ControladorReproductor:
             self.favoritos.add(cancion_actual.ruta)
         self.guardar_configuracion()
         self.actualizar_listas_especiales()
+        self.vista.actualizar_boton_favorito(cancion_actual.ruta in self.favoritos)
 
     def alternar_me_gusta(self):
         cancion_actual = self.modelo.canciones[self.indice_actual]

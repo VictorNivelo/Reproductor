@@ -1,59 +1,69 @@
 from customtkinter import CTkScrollableFrame, CTkButton, CTkImage
+from PIL import Image, ImageColor
 from tkinter import messagebox
 import customtkinter as ctk
 import tkinter as tk
+import colorsys
 
 
 class VistaReproductor:
     def __init__(self, root, controlador):
         self.root = root
         self.controlador = controlador
-        self.root.title("Music Player")
-        self.root.geometry("1200x800")
+        self.root.title("Reproductor de Música")
+        self.root.geometry("1200x720")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
+        self.color_principal = "#2EBD59"
+        self.color_secundario = "#222222"
         self._crear_widgets()
         self._configurar_listas_personalizadas()
 
     def _crear_widgets(self):
-        self.frame_principal = ctk.CTkFrame(self.root, fg_color="#121212")
+        self.frame_principal = ctk.CTkFrame(self.root, fg_color="#0A0A0A")
         self.frame_principal.pack(fill=tk.BOTH, expand=True)
-        self.frame_izquierdo = ctk.CTkFrame(self.frame_principal, width=600, corner_radius=12, fg_color="#1E1E1E")
-        self.frame_izquierdo.pack(side=tk.LEFT, fill=tk.BOTH, padx=(20, 10), pady=20)
-        self.frame_derecho = ctk.CTkFrame(self.frame_principal, width=350, corner_radius=12, fg_color="#1E1E1E")
-        self.frame_derecho.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False, padx=(10, 20), pady=20)
+        self.frame_izquierdo = ctk.CTkFrame(self.frame_principal, width=700, corner_radius=20, fg_color="#111111")
+        self.frame_izquierdo.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 5), pady=10)
+        self.frame_derecho = ctk.CTkFrame(self.frame_principal, width=350, corner_radius=20, fg_color="#111111")
+        self.frame_derecho.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 10), pady=10)
         self._crear_widgets_izquierdos()
         self._crear_widgets_derechos()
 
     def _crear_widgets_izquierdos(self):
-        self.caratula = ctk.CTkLabel(self.frame_izquierdo, text="", width=300, height=300)
+        self.caratula = ctk.CTkLabel(self.frame_izquierdo, text="", width=250, height=250)
         self.caratula.pack(pady=15)
         self.titulo = ctk.CTkLabel(
-            self.frame_izquierdo, text="", font=ctk.CTkFont(family="Roboto", size=20, weight="bold")
+            self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=20, weight="bold")
         )
         self.titulo.pack()
-        self.artista = ctk.CTkLabel(self.frame_izquierdo, text="", font=ctk.CTkFont(family="Roboto", size=16))
+        self.artista = ctk.CTkLabel(self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=16))
         self.artista.pack()
-        self.album = ctk.CTkLabel(self.frame_izquierdo, text="", font=ctk.CTkFont(family="Roboto", size=14))
+        self.album = ctk.CTkLabel(self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=14))
         self.album.pack()
         self.barra_progreso = ctk.CTkProgressBar(
-            self.frame_izquierdo, width=300, height=5, corner_radius=2, fg_color="#333333", progress_color="#1DB954"
+            self.frame_izquierdo, width=575, height=4, corner_radius=2, fg_color="#222222", progress_color="#2EBD59"
         )
         self.barra_progreso.pack(pady=15)
         self.frame_tiempo = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
         self.frame_tiempo.pack(fill=tk.X, pady=2)
-        self.tiempo_actual = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Roboto", 10))
-        self.tiempo_actual.pack(side=tk.LEFT, padx=40)
-        self.tiempo_total = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Roboto", 10))
-        self.tiempo_total.pack(side=tk.RIGHT, padx=40)
+        self.tiempo_actual = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Inter", 10))
+        self.tiempo_actual.pack(side=tk.LEFT, padx=15)
+        self.tiempo_total = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Inter", 10))
+        self.tiempo_total.pack(side=tk.RIGHT, padx=15)
         self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
-        self.frame_controles.pack(pady=15)
+        self.frame_controles.pack(pady=12)
         botones_control = [
-            ("⏮", "anterior", 35),
-            ("⏪", "retroceder", 35),
-            ("▶", "reproducir_pausar", 45),
-            ("⏩", "adelantar", 35),
-            ("⏭", "siguiente", 35),
+            ("⏮", "anterior", 40),
+            ("⏪", "retroceder", 40),
+            ("▶", "reproducir_pausar", 50),
+            ("⏩", "adelantar", 40),
+            ("⏭", "siguiente", 40),
+            ("🔀", "aleatorio", 40),
+            ("🔁", "repetir", 40),
+            ("⭐", "favorito", 40),
+            ("❤", "me_gusta", 40),
+            ("👁", "mostrar_cola", 40),
+            ("➕", "agregar_cola", 40),
         ]
         for texto, nombre, tamaño in botones_control:
             btn = ctk.CTkButton(
@@ -61,101 +71,76 @@ class VistaReproductor:
                 text=texto,
                 width=tamaño,
                 height=tamaño,
-                font=("Roboto", 16),
-                fg_color="#282828",
-                hover_color="#383838",
+                font=("Inter", 16),
+                fg_color="#333333",
+                hover_color="#444444",
                 corner_radius=tamaño // 2,
             )
             setattr(self, f"boton_{nombre}", btn)
-            btn.pack(side=tk.LEFT, padx=3)
-        self.boton_reproducir_pausar.configure(fg_color="#1DB954", hover_color="#1ed760", font=("Roboto", 18))
-        self.frame_controles_adicionales = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
-        self.frame_controles_adicionales.pack(pady=15)
-        botones_adicionales = [
-            ("🔀", "aleatorio"),
-            ("🔁", "repetir"),
-            ("⭐", "favorito"),
-            ("❤", "me_gusta"),
-            ("👁", "mostrar_cola"),
-            ("➕", "agregar_cola"),
-        ]
-        for texto, nombre in botones_adicionales:
-            btn = ctk.CTkButton(
-                self.frame_controles_adicionales,
-                text=texto,
-                width=30,
-                height=30,
-                font=("Roboto", 14),
-                corner_radius=15,
-                fg_color="#282828",
-                hover_color="#383838",
-            )
-            setattr(self, f"boton_{nombre}", btn)
-            btn.pack(side=tk.LEFT, padx=3)
+            btn.pack(side=tk.LEFT, padx=4)
+        self.boton_reproducir_pausar.configure(fg_color="#1DB954", hover_color="#1ED760", font=("Inter", 18))
         self.frame_volumen = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
-        self.frame_volumen.pack(pady=15, fill=tk.X, padx=35)
+        self.frame_volumen.pack(pady=12, fill=tk.X, padx=40)
         self.boton_mute = ctk.CTkButton(
             self.frame_volumen,
             text="🔊",
-            width=30,
-            height=30,
-            font=("Roboto", 14),
-            fg_color="#282828",
-            hover_color="#383838",
-            corner_radius=15,
+            width=28,
+            height=28,
+            font=("Inter", 12),
+            fg_color="#222222",
+            hover_color="#333333",
+            corner_radius=14,
         )
         self.boton_mute.pack(side=tk.LEFT, padx=5)
         self.volumen_slider = ctk.CTkSlider(
             self.frame_volumen,
             from_=0,
             to=100,
-            height=12,
-            fg_color="#333333",
-            progress_color="#1DB954",
-            button_color="#1DB954",
+            height=10,
+            fg_color="#222222",
+            progress_color="#2EBD59",
+            button_color="#2EBD59",
             button_hover_color="#1ed760",
         )
         self.volumen_slider.set(100)
         self.volumen_slider.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        self.frame_listas = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_listas.pack(pady=12)
 
     def _crear_widgets_derechos(self):
-        self.frame_busqueda = ctk.CTkFrame(self.frame_derecho, fg_color="transparent")
-        self.frame_busqueda.pack(fill=tk.X, pady=12, padx=15)
+        self.frame_busqueda_ordenar = ctk.CTkFrame(self.frame_derecho, fg_color="transparent")
+        self.frame_busqueda_ordenar.pack(fill=tk.X, pady=12, padx=15)
         self.entrada_busqueda = ctk.CTkEntry(
-            self.frame_busqueda,
+            self.frame_busqueda_ordenar,
             placeholder_text="Buscar...",
-            height=35,
-            font=("Roboto", 12),
-            fg_color="#282828",
+            height=36,
+            font=("Inter", 14),
+            fg_color="#333333",
             border_color="#1DB954",
             border_width=2,
         )
-        self.entrada_busqueda.pack(side=tk.LEFT, expand=True, fill=tk.X)
+        self.entrada_busqueda.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
         self.entrada_busqueda.bind("<KeyRelease>", self._buscar_cancion)
-        self.frame_ordenar = ctk.CTkFrame(self.frame_derecho, fg_color="transparent")
-        self.frame_ordenar.pack(fill=tk.X, pady=6, padx=15)
-        self.label_ordenar = ctk.CTkLabel(self.frame_ordenar, text="Ordenar por:", font=("Roboto", 12))
-        self.label_ordenar.pack(side=tk.LEFT, padx=(0, 8))
         self.combobox_ordenar = ctk.CTkComboBox(
-            self.frame_ordenar,
+            self.frame_busqueda_ordenar,
             values=["Título", "Artista", "Álbum", "Año"],
             command=self._ordenar_canciones,
-            height=30,
-            font=("Roboto", 12),
-            fg_color="#282828",
+            height=36,
+            font=("Inter", 14),
+            fg_color="#333333",
             button_color="#1DB954",
             border_color="#1DB954",
-            button_hover_color="#1ed760",
-            dropdown_fg_color="#282828",
+            button_hover_color="#1ED760",
+            dropdown_fg_color="#333333",
         )
-        self.combobox_ordenar.pack(side=tk.LEFT)
+        self.combobox_ordenar.pack(side=tk.RIGHT)
         self.notebook = ctk.CTkTabview(
             self.frame_derecho,
-            height=450,
-            fg_color="#282828",
-            segmented_button_fg_color="#1E1E1E",
-            segmented_button_selected_color="#1DB954",
-            segmented_button_unselected_color="#282828",
+            height=400,
+            fg_color="#222222",
+            segmented_button_fg_color="#111111",
+            segmented_button_selected_color="#2EBD59",
+            segmented_button_unselected_color="#222222",
         )
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=12)
         for tab in ["Todas", "Me gusta", "Favoritos", "Listas personalizadas"]:
@@ -175,19 +160,21 @@ class VistaReproductor:
             btn = ctk.CTkButton(
                 self.frame_botones_inferiores,
                 text=texto,
-                height=35,
-                font=("Roboto", 12),
-                fg_color="#282828",
-                hover_color="#383838",
-                corner_radius=6,
+                height=36,
+                font=("Inter", 14),
+                fg_color="#333333",
+                hover_color="#444444",
+                corner_radius=8,
             )
             setattr(self, f"boton_{nombre}", btn)
-            btn.pack(side=tk.LEFT, padx=4)
+        self.boton_seleccionar_carpeta.pack(side=tk.TOP, pady=(0, 5), fill=tk.X)
+        self.boton_importar.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 2))
+        self.boton_exportar.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(2, 0))
         self.boton_importar.configure(command=self.controlador.importar_lista)
         self.boton_exportar.configure(command=self.controlador.exportar_lista)
 
     def _crear_lista_canciones(self, parent, nombre):
-        lista = ctk.CTkScrollableFrame(parent, height=300, fg_color="#1E1E1E", corner_radius=6)
+        lista = ctk.CTkFrame(parent, fg_color="#1E1E1E", corner_radius=8)
         lista.pack(fill=tk.BOTH, expand=True)
         setattr(self, nombre, lista)
 
@@ -219,19 +206,30 @@ class VistaReproductor:
         lista = getattr(self, lista_nombre)
         for widget in lista.winfo_children():
             widget.destroy()
+        canvas = tk.Canvas(lista, bg="#1E1E1E", highlightthickness=0)
+        scrollbar = ctk.CTkScrollbar(lista, orientation="vertical", command=canvas.yview)
+        scrollable_frame = ctk.CTkFrame(canvas, fg_color="#1E1E1E")
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
         for cancion in canciones:
-            btn = ctk.CTkButton(
-                lista,
-                text=f"{cancion.titulo} - {cancion.artista}",
-                anchor="w",
-                command=lambda c=cancion: self.controlador.reproducir_cancion(c),
-                fg_color="#282828",
-                hover_color="#383838",
-                height=35,
-                corner_radius=6,
-                font=("Roboto", 12),
-            )
-            btn.pack(fill=tk.X, pady=2, padx=4)
+            try:
+                btn = ctk.CTkButton(
+                    scrollable_frame,
+                    text=f"{cancion.titulo} - {cancion.artista}",
+                    anchor="w",
+                    command=lambda c=cancion: self.controlador.reproducir_cancion(c),
+                    fg_color="#333333",
+                    hover_color="#444444",
+                    height=40,
+                    corner_radius=8,
+                    font=("Inter", 14),
+                )
+                btn.pack(fill=tk.X, pady=2, padx=4)
+            except Exception as e:
+                print(f"Error al crear botón para {cancion.titulo}: {str(e)}")
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
     def actualizar_cancion(self, cancion):
         self.titulo.configure(text=cancion.titulo)
@@ -242,10 +240,63 @@ class VistaReproductor:
         if cancion.caratula:
             img = CTkImage(light_image=cancion.caratula, size=(250, 250))
             self.caratula.configure(image=img)
+            self.color_principal = self.obtener_color_dominante(cancion.caratula)
+            self.color_secundario = self.ajustar_brillo(self.color_principal, 0.2)
+            self.actualizar_colores()
         else:
             self.caratula.configure(image=None, text="Sin carátula")
+            self.color_principal = "#2EBD59"
+            self.color_secundario = "#222222"
+            self.actualizar_colores()
         self.barra_progreso.set(0)
         self.tiempo_actual.configure(text="0:00")
+        self.actualizar_boton_me_gusta(cancion.ruta in self.controlador.me_gusta)
+        self.actualizar_boton_favorito(cancion.ruta in self.controlador.favoritos)
+
+    def obtener_color_dominante(self, imagen):
+        imagen = imagen.copy()
+        imagen = imagen.resize((50, 50))
+        resultado = imagen.convert("P", palette=Image.ADAPTIVE, colors=1)
+        paleta = resultado.getpalette()
+        color_dominante = tuple(paleta[:3])
+        return f"#{color_dominante[0]:02x}{color_dominante[1]:02x}{color_dominante[2]:02x}"
+
+    def ajustar_brillo(self, color, factor):
+        rgb = ImageColor.getrgb(color)
+        hsv = colorsys.rgb_to_hsv(rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0)
+        rgb = colorsys.hsv_to_rgb(hsv[0], hsv[1], max(min(hsv[2] * factor, 1.0), 0.0))
+        return f"#{int(rgb[0]*255):02x}{int(rgb[1]*255):02x}{int(rgb[2]*255):02x}"
+
+    def actualizar_colores(self):
+        self.barra_progreso.configure(progress_color=self.color_principal)
+        self.volumen_slider.configure(progress_color=self.color_principal, button_color=self.color_principal)
+        for widget in [self.boton_reproducir_pausar, self.boton_aleatorio, self.boton_repetir]:
+            widget.configure(fg_color=self.color_principal, hover_color=self.ajustar_brillo(self.color_principal, 1.2))
+        for widget in [self.frame_izquierdo, self.frame_derecho]:
+            widget.configure(fg_color=self.color_secundario)
+        for widget in self.frame_controles.winfo_children():
+            if widget not in [
+                self.boton_reproducir_pausar,
+                self.boton_aleatorio,
+                self.boton_repetir,
+                self.boton_me_gusta,
+                self.boton_favorito,
+            ]:
+                widget.configure(
+                    fg_color=self.color_secundario, hover_color=self.ajustar_brillo(self.color_secundario, 1.2)
+                )
+        self.boton_me_gusta.configure(fg_color="#FF0000", hover_color="#FF3333")
+        self.boton_favorito.configure(fg_color="#eed010", hover_color="#FFFF33")
+        self.entrada_busqueda.configure(border_color=self.color_principal)
+        self.combobox_ordenar.configure(
+            button_color=self.color_principal,
+            border_color=self.color_principal,
+            button_hover_color=self.ajustar_brillo(self.color_principal, 1.2),
+        )
+        self.notebook.configure(segmented_button_selected_color=self.color_principal)
+        for lista in [self.lista_canciones, self.lista_me_gusta, self.lista_favoritos, self.lista_personalizadas]:
+            lista.configure(fg_color=self.ajustar_brillo(self.color_secundario, 0.8))
+        self.actualizar_lista_canciones(self.controlador.modelo.canciones)
 
     def actualizar_listas_personalizadas(self, listas):
         for widget in self.lista_personalizadas.winfo_children():
@@ -275,7 +326,10 @@ class VistaReproductor:
         self.boton_repetir.configure(fg_color="#22559b" if activo else "transparent")
 
     def actualizar_boton_me_gusta(self, activo):
-        self.boton_me_gusta.configure(fg_color="#22559b" if activo else "transparent")
+        self.boton_me_gusta.configure(fg_color="#ff0000" if activo else self.color_secundario)
+
+    def actualizar_boton_favorito(self, activo):
+        self.boton_favorito.configure(fg_color="#eed010" if activo else self.color_secundario)
 
     def actualizar_icono_volumen(self, volumen):
         if volumen == 0:
