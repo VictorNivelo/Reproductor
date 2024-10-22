@@ -12,6 +12,7 @@ class VistaReproductor:
         self.controlador = controlador
         self.root.title("Reproductor de Música")
         self.root.geometry("1200x720")
+        self.root.minsize(1200, 720)
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
         self.color_principal = "#2EBD59"
@@ -22,16 +23,21 @@ class VistaReproductor:
     def _crear_widgets(self):
         self.frame_principal = ctk.CTkFrame(self.root, fg_color="#0A0A0A")
         self.frame_principal.pack(fill=tk.BOTH, expand=True)
+        self.frame_principal.grid_columnconfigure(0, weight=2)
+        self.frame_principal.grid_columnconfigure(1, weight=1)
         self.frame_izquierdo = ctk.CTkFrame(self.frame_principal, width=700, corner_radius=20, fg_color="#111111")
         self.frame_izquierdo.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 5), pady=10)
+        self.frame_izquierdo.pack_propagate(False)
         self.frame_derecho = ctk.CTkFrame(self.frame_principal, width=350, corner_radius=20, fg_color="#111111")
         self.frame_derecho.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 10), pady=10)
+        self.frame_derecho.pack_propagate(False)
         self._crear_widgets_izquierdos()
         self._crear_widgets_derechos()
 
     def _crear_widgets_izquierdos(self):
         self.caratula = ctk.CTkLabel(self.frame_izquierdo, text="", width=250, height=250)
         self.caratula.pack(pady=15)
+        self.caratula.pack_propagate(False)
         self.titulo = ctk.CTkLabel(
             self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=20, weight="bold")
         )
@@ -50,20 +56,21 @@ class VistaReproductor:
         self.tiempo_actual.pack(side=tk.LEFT, padx=15)
         self.tiempo_total = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Inter", 10))
         self.tiempo_total.pack(side=tk.RIGHT, padx=15)
-        self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent", width=800, height=50)
         self.frame_controles.pack(pady=12)
+        self.frame_controles.pack_propagate(False)
         botones_control = [
-            ("⏮", "anterior", 40),
-            ("⏪", "retroceder", 40),
-            ("▶", "reproducir_pausar", 50),
-            ("⏩", "adelantar", 40),
-            ("⏭", "siguiente", 40),
-            ("🔀", "aleatorio", 40),
-            ("🔁", "repetir", 40),
-            ("⭐", "favorito", 40),
-            ("❤", "me_gusta", 40),
-            ("👁", "mostrar_cola", 40),
-            ("➕", "agregar_cola", 40),
+            ("🔁", "repetir", 36),
+            ("🔀", "aleatorio", 36),
+            ("⏮", "anterior", 36),
+            ("⏪", "retroceder", 36),
+            ("▶", "reproducir_pausar", 40),
+            ("⏩", "adelantar", 36),
+            ("⏭", "siguiente", 36),
+            ("⭐", "favorito", 36),
+            ("❤", "me_gusta", 36),
+            ("👁", "mostrar_cola", 36),
+            ("➕", "agregar_cola", 36),
         ]
         for texto, nombre, tamaño in botones_control:
             btn = ctk.CTkButton(
@@ -71,21 +78,21 @@ class VistaReproductor:
                 text=texto,
                 width=tamaño,
                 height=tamaño,
-                font=("Inter", 16),
+                font=("Inter", 18),
                 fg_color="#333333",
                 hover_color="#444444",
-                corner_radius=tamaño // 2,
+                corner_radius=tamaño // 1.5,
             )
             setattr(self, f"boton_{nombre}", btn)
-            btn.pack(side=tk.LEFT, padx=4)
+            btn.pack(side=tk.LEFT, padx=3)
         self.boton_reproducir_pausar.configure(fg_color="#1DB954", hover_color="#1ED760", font=("Inter", 18))
         self.frame_volumen = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
         self.frame_volumen.pack(pady=12, fill=tk.X, padx=40)
         self.boton_mute = ctk.CTkButton(
             self.frame_volumen,
             text="🔊",
-            width=28,
-            height=28,
+            width=36,
+            height=36,
             font=("Inter", 12),
             fg_color="#222222",
             hover_color="#333333",
@@ -114,10 +121,10 @@ class VistaReproductor:
             self.frame_busqueda_ordenar,
             placeholder_text="Buscar...",
             height=36,
-            font=("Inter", 14),
+            font=("Inter", 12),
             fg_color="#333333",
             border_color="#1DB954",
-            border_width=2,
+            border_width=1,
         )
         self.entrada_busqueda.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
         self.entrada_busqueda.bind("<KeyRelease>", self._buscar_cancion)
@@ -126,7 +133,7 @@ class VistaReproductor:
             values=["Título", "Artista", "Álbum", "Año"],
             command=self._ordenar_canciones,
             height=36,
-            font=("Inter", 14),
+            font=("Inter", 12),
             fg_color="#333333",
             button_color="#1DB954",
             border_color="#1DB954",
@@ -161,7 +168,7 @@ class VistaReproductor:
                 self.frame_botones_inferiores,
                 text=texto,
                 height=36,
-                font=("Inter", 14),
+                font=("Inter", 12),
                 fg_color="#333333",
                 hover_color="#444444",
                 corner_radius=8,
@@ -172,10 +179,14 @@ class VistaReproductor:
         self.boton_exportar.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(2, 0))
         self.boton_importar.configure(command=self.controlador.importar_lista)
         self.boton_exportar.configure(command=self.controlador.exportar_lista)
+        self.frame_derecho.grid_rowconfigure(0, weight=0)
+        self.frame_derecho.grid_rowconfigure(1, weight=1)
+        self.frame_derecho.grid_rowconfigure(2, weight=0)
 
     def _crear_lista_canciones(self, parent, nombre):
-        lista = ctk.CTkFrame(parent, fg_color="#1E1E1E", corner_radius=8)
+        lista = ctk.CTkFrame(parent, fg_color="#1E1E1E", corner_radius=8, width=300, height=400)
         lista.pack(fill=tk.BOTH, expand=True)
+        lista.pack_propagate(False)
         setattr(self, nombre, lista)
 
     def _crear_listas_personalizadas(self, parent):
@@ -204,6 +215,8 @@ class VistaReproductor:
 
     def actualizar_lista_canciones(self, canciones, lista_nombre="lista_canciones"):
         lista = getattr(self, lista_nombre)
+        lista.configure(width=300, height=400)
+        lista.pack_propagate(False)
         for widget in lista.winfo_children():
             widget.destroy()
         canvas = tk.Canvas(lista, bg="#1E1E1E", highlightthickness=0)
@@ -223,7 +236,7 @@ class VistaReproductor:
                     hover_color="#444444",
                     height=40,
                     corner_radius=8,
-                    font=("Inter", 14),
+                    font=("Roboto", 12),
                 )
                 btn.pack(fill=tk.X, pady=2, padx=4)
             except Exception as e:
@@ -270,7 +283,18 @@ class VistaReproductor:
     def actualizar_colores(self):
         self.barra_progreso.configure(progress_color=self.color_principal)
         self.volumen_slider.configure(progress_color=self.color_principal, button_color=self.color_principal)
-        for widget in [self.boton_reproducir_pausar, self.boton_aleatorio, self.boton_repetir]:
+        for widget in [
+            self.boton_reproducir_pausar,
+            self.boton_aleatorio,
+            self.boton_siguiente,
+            self.boton_anterior,
+            self.boton_adelantar,
+            self.boton_retroceder,
+            self.boton_repetir,
+            self.boton_mostrar_cola,
+            self.boton_agregar_cola,
+            self.boton_mute,
+        ]:
             widget.configure(fg_color=self.color_principal, hover_color=self.ajustar_brillo(self.color_principal, 1.2))
         for widget in [self.frame_izquierdo, self.frame_derecho]:
             widget.configure(fg_color=self.color_secundario)
@@ -278,9 +302,15 @@ class VistaReproductor:
             if widget not in [
                 self.boton_reproducir_pausar,
                 self.boton_aleatorio,
+                self.boton_siguiente,
+                self.boton_anterior,
+                self.boton_adelantar,
+                self.boton_retroceder,
                 self.boton_repetir,
                 self.boton_me_gusta,
                 self.boton_favorito,
+                self.boton_mostrar_cola,
+                self.boton_agregar_cola,
             ]:
                 widget.configure(
                     fg_color=self.color_secundario, hover_color=self.ajustar_brillo(self.color_secundario, 1.2)
