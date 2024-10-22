@@ -10,6 +10,8 @@ import io
 
 
 class Cancion:
+    EXTENSIONES_SOPORTADAS = {".mp3": MP3, ".flac": FLAC, ".ogg": OggVorbis, ".wav": WAVE}
+
     def __init__(self, ruta):
         self.ruta = ruta
         self.extension = os.path.splitext(ruta)[1].lower()
@@ -23,34 +25,25 @@ class Cancion:
         self.caratula = self._obtener_caratula()
 
     def _cargar_audio(self):
-        if self.extension == ".mp3":
-            return MP3(self.ruta, ID3=ID3)
-        elif self.extension == ".flac":
-            return FLAC(self.ruta)
-        elif self.extension == ".ogg":
-            return OggVorbis(self.ruta)
-        elif self.extension == ".wav":
-            return WAVE(self.ruta)
-        else:
-            return File(self.ruta)
+        if self.extension in self.EXTENSIONES_SOPORTADAS:
+            return (
+                self.EXTENSIONES_SOPORTADAS[self.extension](self.ruta, ID3=ID3)
+                if self.extension == ".mp3"
+                else self.EXTENSIONES_SOPORTADAS[self.extension](self.ruta)
+            )
+        return File(self.ruta)
 
     def _obtener_metadato(self, clave):
         try:
             if self.extension == ".mp3":
-                if clave == "title":
-                    return str(self.audio.get("TIT2", "Título Desconocido"))
-                elif clave == "artist":
-                    return str(self.audio.get("TPE1", "Artista Desconocido"))
-                elif clave == "album":
-                    return str(self.audio.get("TALB", "Álbum Desconocido"))
-                elif clave == "date":
-                    return str(self.audio.get("TDRC", "Año Desconocido"))
-                elif clave == "tracknumber":
-                    return str(self.audio.get("TRCK", "Número de Pista Desconocido"))
-            else:
-                return str(self.audio.get(clave, ["Desconocido"])[0])
+                return self._obtener_metadato_mp3(clave)
+            return str(self.audio.get(clave, ["Desconocido"])[0])
         except:
             return "Desconocido"
+
+    def _obtener_metadato_mp3(self, clave):
+        metadatos_mp3 = {"title": "TIT2", "artist": "TPE1", "album": "TALB", "date": "TDRC", "tracknumber": "TRCK"}
+        return str(self.audio.get(metadatos_mp3[clave], f"{clave.title()} Desconocido"))
 
     def _obtener_duracion(self):
         try:
@@ -61,13 +54,10 @@ class Cancion:
     def _obtener_caratula(self):
         try:
             if self.extension == ".mp3":
-                pict = self.audio.get("APIC:").data
-                return Image.open(io.BytesIO(pict))
+                return Image.open(io.BytesIO(self.audio.get("APIC:").data))
             elif self.extension in [".flac", ".ogg"]:
-                for picture in self.audio.pictures:
-                    return Image.open(io.BytesIO(picture.data))
-            else:
-                return None
+                return Image.open(io.BytesIO(self.audio.pictures[0].data))
+            return None
         except:
             return None
 
@@ -84,15 +74,17 @@ class Cancion:
 
 
 class Biblioteca:
+    EXTENSIONES_VALIDAS = (".mp3", ".flac", ".ogg", ".wav")
+
     def __init__(self):
         self.canciones = []
         self.directorio = ""
 
     def cargar_canciones(self, directorio):
         self.canciones.clear()
-        for raiz, dirs, archivos in os.walk(directorio):
+        for raiz, _, archivos in os.walk(directorio):
             for archivo in archivos:
-                if archivo.endswith((".mp3", ".flac", ".ogg", ".wav")):
+                if archivo.endswith(self.EXTENSIONES_VALIDAS):
                     ruta_completa = os.path.join(raiz, archivo)
                     self.canciones.append(Cancion(ruta_completa))
 
@@ -100,7 +92,4 @@ class Biblioteca:
         return self.canciones
 
     def obtener_cancion_por_ruta(self, ruta):
-        for cancion in self.canciones:
-            if cancion.ruta == ruta:
-                return cancion
-        return None
+        return next((cancion for cancion in self.canciones if cancion.ruta == ruta), None)

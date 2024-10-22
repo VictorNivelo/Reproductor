@@ -9,6 +9,7 @@ import time
 import asyncio
 import json
 
+
 class Cancion:
     def __init__(self, ruta):
         self.ruta = ruta
@@ -26,6 +27,7 @@ class Cancion:
             return io.BytesIO(pict)
         except:
             return None
+
 
 class ReproductorMusica(ft.UserControl):
     def __init__(self):
@@ -59,52 +61,25 @@ class ReproductorMusica(ft.UserControl):
         self.texto_artista = ft.Text("", size=16, text_align=ft.TextAlign.CENTER)
         self.texto_album = ft.Text("", size=14, text_align=ft.TextAlign.CENTER)
         self.texto_año = ft.Text("", size=14, text_align=ft.TextAlign.CENTER)
-        self.texto_posicion = ft.Text(
-            "0:00 / 0:00", size=14, text_align=ft.TextAlign.CENTER
-        )
-
+        self.texto_posicion = ft.Text("0:00 / 0:00", size=14, text_align=ft.TextAlign.CENTER)
         self.barra_progreso = ft.ProgressBar(width=300, height=5, value=0)
-        self.control_volumen = ft.Slider(
-            min=0, max=1, value=1, width=150, on_change=self.cambiar_volumen
-        )
-
-        self.boton_reproducir = ft.IconButton(
-            ft.icons.PLAY_ARROW, on_click=self.alternar_reproduccion, icon_size=32
-        )
-        self.boton_anterior = ft.IconButton(
-            ft.icons.SKIP_PREVIOUS, on_click=self.cancion_anterior, icon_size=24
-        )
-        self.boton_siguiente = ft.IconButton(
-            ft.icons.SKIP_NEXT, on_click=self.cancion_siguiente, icon_size=24
-        )
-        self.boton_aleatorio = ft.IconButton(
-            ft.icons.SHUFFLE, on_click=self.alternar_aleatorio, icon_size=24
-        )
-        self.boton_repetir = ft.IconButton(
-            ft.icons.REPEAT, on_click=self.alternar_repetir, icon_size=24
-        )
-        self.boton_favorito = ft.IconButton(
-            ft.icons.FAVORITE_BORDER, on_click=self.alternar_favorito, icon_size=24
-        )
-        self.boton_me_gusta = ft.IconButton(
-            ft.icons.THUMB_UP_OUTLINED, on_click=self.alternar_me_gusta, icon_size=24
-        )
-        self.boton_adelantar_10 = ft.IconButton(
-            ft.icons.FORWARD_10, on_click=self.adelantar_10, icon_size=24
-        )
-        self.boton_retroceder_10 = ft.IconButton(
-            ft.icons.REPLAY_10, on_click=self.retroceder_10, icon_size=24
-        )
-
+        self.control_volumen = ft.Slider(min=0, max=1, value=1, width=150, on_change=self.cambiar_volumen)
+        self.boton_reproducir = ft.IconButton(ft.icons.PLAY_ARROW, on_click=self.alternar_reproduccion, icon_size=32)
+        self.boton_anterior = ft.IconButton(ft.icons.SKIP_PREVIOUS, on_click=self.cancion_anterior, icon_size=24)
+        self.boton_siguiente = ft.IconButton(ft.icons.SKIP_NEXT, on_click=self.cancion_siguiente, icon_size=24)
+        self.boton_aleatorio = ft.IconButton(ft.icons.SHUFFLE, on_click=self.alternar_aleatorio, icon_size=24)
+        self.boton_repetir = ft.IconButton(ft.icons.REPEAT, on_click=self.alternar_repetir, icon_size=24)
+        self.boton_favorito = ft.IconButton(ft.icons.FAVORITE_BORDER, on_click=self.alternar_favorito, icon_size=24)
+        self.boton_me_gusta = ft.IconButton(ft.icons.THUMB_UP_OUTLINED, on_click=self.alternar_me_gusta, icon_size=24)
+        self.boton_adelantar_10 = ft.IconButton(ft.icons.FORWARD_10, on_click=self.adelantar_10, icon_size=24)
+        self.boton_retroceder_10 = ft.IconButton(ft.icons.REPLAY_10, on_click=self.retroceder_10, icon_size=24)
         self.lista_canciones = ft.ListView(expand=1, spacing=10, padding=20, auto_scroll=True)
         self.boton_seleccionar_carpeta = ft.ElevatedButton(
-            "Seleccionar Carpeta", on_click=self.seleccionar_carpeta, style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10)
-            )
+            "Seleccionar Carpeta",
+            on_click=self.seleccionar_carpeta,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
         )
-
         self.interruptor_tema = ft.Switch(label="Modo oscuro", on_change=self.cambiar_tema)
-
         info_cancion = ft.Column(
             [
                 self.imagen_portada,
@@ -140,7 +115,6 @@ class ReproductorMusica(ft.UserControl):
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=10,
         )
-
         return ft.Container(
             content=ft.Column(
                 [
@@ -261,23 +235,17 @@ class ReproductorMusica(ft.UserControl):
             if self.aleatorio:
                 self.indice_cancion_actual = random.randint(0, len(self.canciones) - 1)
             else:
-                self.indice_cancion_actual = (self.indice_cancion_actual + 1) % len(
-                    self.canciones
-                )
+                self.indice_cancion_actual = (self.indice_cancion_actual + 1) % len(self.canciones)
             self.reproducir_cancion(self.indice_cancion_actual)
 
     def alternar_aleatorio(self, e):
         self.aleatorio = not self.aleatorio
-        self.boton_aleatorio.icon = (
-            ft.icons.SHUFFLE_ON if self.aleatorio else ft.icons.SHUFFLE
-        )
+        self.boton_aleatorio.icon = ft.icons.SHUFFLE_ON if self.aleatorio else ft.icons.SHUFFLE
         self.update()
 
     def alternar_repetir(self, e):
         self.repetir = not self.repetir
-        self.boton_repetir.icon = (
-            ft.icons.REPEAT_ONE if self.repetir else ft.icons.REPEAT
-        )
+        self.boton_repetir.icon = ft.icons.REPEAT_ONE if self.repetir else ft.icons.REPEAT
         self.update()
 
     def alternar_favorito(self, e):
@@ -306,9 +274,7 @@ class ReproductorMusica(ft.UserControl):
         if self.canciones:
             tiempo_actual = time.time()
             transcurrido = tiempo_actual - self.tiempo_inicio + self.posicion_actual
-            nueva_posicion = min(
-                transcurrido + 10, self.canciones[self.indice_cancion_actual].duracion
-            )
+            nueva_posicion = min(transcurrido + 10, self.canciones[self.indice_cancion_actual].duracion)
             pygame.mixer.music.stop()
             pygame.mixer.music.play(start=nueva_posicion)
             self.tiempo_inicio = time.time()
@@ -368,16 +334,15 @@ class ReproductorMusica(ft.UserControl):
         except FileNotFoundError:
             pass
 
+
 def main(page: ft.Page):
     page.title = "Reproductor de Música"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
-    
     page.window.width = 1200
     page.window.height = 900
     page.window.resizable = False
     page.window.maximizable = False
-    
     reproductor = ReproductorMusica()
     page.add(reproductor)
 
@@ -386,5 +351,6 @@ def main(page: ft.Page):
             reproductor.guardar_canciones()
 
     page.window.on_event = on_window_event
+
 
 ft.app(target=main)

@@ -4,15 +4,15 @@ from Modelo.Cancion import Biblioteca
 import tkinter as tk
 
 
-def main():
-    root = tk.Tk()
-    modelo = Biblioteca()
-    controlador = ControladorReproductor(modelo, None)
-    vista = VistaReproductor(root, controlador)
+def iniciar_aplicacion():
+    ventana_principal = tk.Tk()
+    biblioteca = Biblioteca()
+    controlador = ControladorReproductor(biblioteca, None)
+    vista = VistaReproductor(ventana_principal, controlador)
     controlador.vista = vista
     controlador.iniciar()
-    root.mainloop()
+    ventana_principal.mainloop()
 
 
 if __name__ == "__main__":
-    main()
+    iniciar_aplicacion()
