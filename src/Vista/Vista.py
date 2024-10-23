@@ -1,9 +1,10 @@
 from customtkinter import CTkScrollableFrame, CTkButton, CTkImage
-from PIL import Image, ImageColor
 from tkinter import messagebox
 import customtkinter as ctk
+from PIL import Image
 import tkinter as tk
 import colorsys
+import random
 
 
 class VistaReproductor:
@@ -13,20 +14,40 @@ class VistaReproductor:
         self._inicializar_ventana()
         self._crear_widgets()
         self._configurar_listas_personalizadas()
+        self.iniciar_visualizador()
 
     def _inicializar_ventana(self):
         self.root.title("Reproductor de Música")
         self.root.geometry("1200x720")
         self.root.minsize(1200, 720)
-        ctk.set_appearance_mode("dark")
+        self.tema_actual = "dark"
+        ctk.set_appearance_mode(self.tema_actual)
         ctk.set_default_color_theme("blue")
         self.color_principal = "#2EBD59"
         self.color_secundario = "#222222"
+        self.fuente_principal = ("SF Pro Display", 14)
+        self.fuente_titulos = ("SF Pro Display", 20, "bold")
+        self.cargar_iconos()
+        self.reproduciendo = False
+        self.pausado = True
 
-    def _crear_widgets(self):
-        self._crear_frame_principal()
-        self._crear_widgets_izquierdos()
-        self._crear_widgets_derechos()
+    def cargar_iconos(self):
+        self.iconos = {
+            "play": "▶️",
+            "pause": "⏸️",
+            "next": "⏭️",
+            "prev": "⏮️",
+            "shuffle": "🔀",
+            "repeat": "🔁",
+            "volume": "🔊",
+            "mute": "🔇",
+            "heart": "❤️",
+            "star": "⭐",
+            "plus": "➕",
+            "queue": "📋",
+            "light": "☀️",
+            "dark": "🌙",
+        }
 
     def _crear_frame_principal(self):
         self.frame_principal = ctk.CTkFrame(self.root, fg_color="#0A0A0A")
@@ -41,11 +62,148 @@ class VistaReproductor:
         self.frame_derecho.pack_propagate(False)
 
     def _crear_widgets_izquierdos(self):
+        self._crear_controles_superiores()
         self._crear_caratula()
         self._crear_info_cancion()
+        self._crear_visualizador()
         self._crear_controles_reproduccion()
         self._crear_controles_volumen()
         self._crear_frame_listas()
+
+    def _crear_controles_superiores(self):
+        self.frame_superior = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_superior.pack(fill=tk.X, pady=(10, 0), padx=10)
+        self.boton_tema = ctk.CTkButton(
+            self.frame_superior,
+            text=self.iconos["light"] if self.tema_actual == "dark" else self.iconos["dark"],
+            width=36,
+            height=36,
+            font=self.fuente_principal,
+            fg_color="#333333",
+            hover_color="#444444",
+            corner_radius=18,
+            command=self.cambiar_tema,
+        )
+        self.boton_tema.pack(side=tk.RIGHT)
+
+    def cambiar_tema(self):
+        self.tema_actual = "light" if self.tema_actual == "dark" else "dark"
+        self.actualizar_tema(self.tema_actual)
+        self.boton_tema.configure(text=self.iconos["light"] if self.tema_actual == "dark" else self.iconos["dark"])
+
+    def _crear_visualizador(self):
+        self.frame_visualizador = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_visualizador.pack(pady=10)
+        self.canvas_visualizador = tk.Canvas(self.frame_visualizador, width=550, height=80, highlightthickness=0)
+        self.canvas_visualizador.pack(pady=5)
+        self.canvas_visualizador.configure(bg=self.color_secundario)
+        self.barras_visualizador = []
+        self.num_barras = 100
+        self.ancho_barra = 4
+        self.espacio_entre_barras = 3
+        ancho_total = (self.ancho_barra + self.espacio_entre_barras) * self.num_barras
+        inicio_x = (400 - ancho_total) / 2
+        for i in range(self.num_barras):
+            x = inicio_x + i * (self.ancho_barra + self.espacio_entre_barras)
+            barra = self.canvas_visualizador.create_rectangle(
+                x, 80, x + self.ancho_barra, 79, fill=self.color_principal, width=0
+            )
+            self.barras_visualizador.append(barra)
+        self.suavizado_barras = [0] * self.num_barras
+        self.reproduciendo = False
+        self.pausado = True
+
+    def iniciar_visualizador(self):
+        self.actualizar_visualizador()
+
+    def actualizar_visualizador(self, datos_audio=None):
+        if datos_audio is None:
+            datos_audio = [random.random() * 0.6 + 0.2 for _ in range(self.num_barras)]
+        if self.reproduciendo and not self.pausado:
+            for i, valor in enumerate(datos_audio):
+                objetivo = valor * 60
+                self.suavizado_barras[i] = self.suavizado_barras[i] * 0.7 + objetivo * 0.3
+                altura = max(1, self.suavizado_barras[i])
+                x0, _, x1, _ = self.canvas_visualizador.coords(self.barras_visualizador[i])
+                self.canvas_visualizador.coords(self.barras_visualizador[i], x0, 80 - altura, x1, 80)
+        else:
+            for i, barra in enumerate(self.barras_visualizador):
+                x0, _, x1, _ = self.canvas_visualizador.coords(barra)
+                self.canvas_visualizador.coords(barra, x0, 79, x1, 80)
+        for barra in self.barras_visualizador:
+            self.canvas_visualizador.itemconfig(barra, fill=self.color_principal)
+        self.root.after(50, self.actualizar_visualizador)
+
+    def generar_color_espectro(self, hue, valor):
+        sat = 0.8
+        val = 0.8 + valor * 0.2
+        rgb = colorsys.hsv_to_rgb(hue, sat, val)
+        return f"#{int(rgb[0]*255):02x}{int(rgb[1]*255):02x}{int(rgb[2]*255):02x}"
+
+    def animar_visualizador(self, datos_audio):
+        datos_nuevos = [max(0, valor - 5) for valor in datos_audio]
+        self.actualizar_visualizador(datos_nuevos)
+
+    def animar_boton(self, boton):
+        color_original = boton.cget("fg_color")
+        boton.configure(fg_color=self.color_principal)
+        self.root.after(100, lambda: boton.configure(fg_color=color_original))
+
+    def _crear_botones_control(self):
+        self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent", width=800, height=50)
+        self.frame_controles.pack(pady=12)
+        self.frame_controles.pack_propagate(False)
+        botones_control = [
+            (self.iconos["repeat"], "repetir", 36),
+            (self.iconos["shuffle"], "aleatorio", 36),
+            (self.iconos["prev"], "anterior", 36),
+            (self.iconos["play"], "reproducir_pausar", 40),
+            (self.iconos["next"], "siguiente", 36),
+            (self.iconos["heart"], "me_gusta", 36),
+            (self.iconos["star"], "favorito", 36),
+            (self.iconos["queue"], "mostrar_cola", 36),
+            (self.iconos["plus"], "agregar_cola", 36),
+        ]
+        for icono, nombre, tamaño in botones_control:
+            btn = ctk.CTkButton(
+                self.frame_controles,
+                text=icono,
+                width=tamaño,
+                height=tamaño,
+                font=self.fuente_principal,
+                fg_color="#333333",
+                hover_color="#444444",
+                corner_radius=tamaño // 1.5,
+                command=lambda n=nombre: self.animar_boton(getattr(self, f"boton_{n}")),
+            )
+            setattr(self, f"boton_{nombre}", btn)
+            btn.pack(side=tk.LEFT, padx=3)
+        self.boton_reproducir_pausar.configure(fg_color="#1DB954", hover_color="#1ED760")
+
+    def actualizar_tema(self, modo):
+        ctk.set_appearance_mode(modo)
+        colores = {
+            "dark": {"principal": "#2EBD59", "secundario": "#222222", "fondo": "#111111", "texto": "#FFFFFF"},
+            "light": {"principal": "#1DB954", "secundario": "#EEEEEE", "fondo": "#FFFFFF", "texto": "#000000"},
+        }
+        self.color_principal = colores[modo]["principal"]
+        self.color_secundario = colores[modo]["secundario"]
+        self.actualizar_colores()
+        self.canvas_visualizador.configure(bg=self.color_secundario)
+        for barra in self.barras_visualizador:
+            self.canvas_visualizador.itemconfig(barra, fill=self.color_principal)
+
+    def actualizar_estado_reproduccion(self, reproduciendo, pausado):
+        self.reproduciendo = reproduciendo
+        self.pausado = pausado
+        if reproduciendo and not pausado:
+            self.actualizar_visualizador()
+        self.actualizar_boton_reproducir_pausar(reproduciendo, pausado)
+
+    def _crear_widgets(self):
+        self._crear_frame_principal()
+        self._crear_widgets_izquierdos()
+        self._crear_widgets_derechos()
 
     def _crear_caratula(self):
         self.caratula = ctk.CTkLabel(self.frame_izquierdo, text="", width=250, height=250)
@@ -53,13 +211,11 @@ class VistaReproductor:
         self.caratula.pack_propagate(False)
 
     def _crear_info_cancion(self):
-        self.titulo = ctk.CTkLabel(
-            self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=20, weight="bold")
-        )
+        self.titulo = ctk.CTkLabel(self.frame_izquierdo, text="", font=self.fuente_titulos)
         self.titulo.pack()
-        self.artista = ctk.CTkLabel(self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=16))
+        self.artista = ctk.CTkLabel(self.frame_izquierdo, text="", font=self.fuente_principal)
         self.artista.pack()
-        self.album = ctk.CTkLabel(self.frame_izquierdo, text="", font=ctk.CTkFont(family="Inter", size=14))
+        self.album = ctk.CTkLabel(self.frame_izquierdo, text="", font=self.fuente_principal)
         self.album.pack()
 
     def _crear_controles_reproduccion(self):
@@ -73,9 +229,9 @@ class VistaReproductor:
     def _crear_frame_tiempo(self):
         self.frame_tiempo = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
         self.frame_tiempo.pack(fill=tk.X, pady=2)
-        self.tiempo_actual = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Inter", 10))
+        self.tiempo_actual = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=self.fuente_principal)
         self.tiempo_actual.pack(side=tk.LEFT, padx=15)
-        self.tiempo_total = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=("Inter", 10))
+        self.tiempo_total = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=self.fuente_principal)
         self.tiempo_total.pack(side=tk.RIGHT, padx=15)
 
     def _crear_botones_control(self):
@@ -115,10 +271,10 @@ class VistaReproductor:
         self.frame_volumen.pack(pady=12, fill=tk.X, padx=40)
         self.boton_mute = ctk.CTkButton(
             self.frame_volumen,
-            text="🔊",
+            text=self.iconos["volume"],
             width=36,
             height=36,
-            font=("Inter", 12),
+            font=self.fuente_principal,
             fg_color="#222222",
             hover_color="#333333",
             corner_radius=14,
@@ -304,6 +460,8 @@ class VistaReproductor:
         self.tiempo_actual.configure(text="0:00")
         self.actualizar_boton_me_gusta(cancion.ruta in self.controlador.me_gusta)
         self.actualizar_boton_favorito(cancion.ruta in self.controlador.favoritos)
+        self.reproduciendo = True
+        self.pausado = False
 
     def obtener_color_dominante(self, imagen):
         imagen = imagen.copy()
@@ -313,15 +471,32 @@ class VistaReproductor:
         color_dominante = tuple(paleta[:3])
         return f"#{color_dominante[0]:02x}{color_dominante[1]:02x}{color_dominante[2]:02x}"
 
-    def ajustar_brillo(self, color, factor):
-        rgb = ImageColor.getrgb(color)
+    def ajustar_brillo(self, color_hex, factor):
+        rgb = tuple(int(color_hex[i : i + 2], 16) for i in (1, 3, 5))
         hsv = colorsys.rgb_to_hsv(rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0)
-        rgb = colorsys.hsv_to_rgb(hsv[0], hsv[1], max(min(hsv[2] * factor, 1.0), 0.0))
-        return f"#{int(rgb[0]*255):02x}{int(rgb[1]*255):02x}{int(rgb[2]*255):02x}"
+        rgb_nuevo = colorsys.hsv_to_rgb(hsv[0], hsv[1], min(hsv[2] * factor, 1.0))
+        return f"#{int(rgb_nuevo[0]*255):02x}{int(rgb_nuevo[1]*255):02x}{int(rgb_nuevo[2]*255):02x}"
 
     def actualizar_colores(self):
+        controles_principales = [
+            self.frame_principal,
+            self.frame_izquierdo,
+            self.frame_derecho,
+            self.frame_busqueda_ordenar,
+            self.lista_personalizadas,
+        ]
+        for control in controles_principales:
+            control.configure(fg_color=self.color_secundario)
+        self.frame_visualizador.configure(fg_color=self.ajustar_brillo(self.color_secundario, 1.2))
+        self.canvas_visualizador.configure(bg=self.color_secundario)
+        for barra in self.barras_visualizador:
+            self.canvas_visualizador.itemconfig(barra, fill=self.color_principal)
         self.barra_progreso.configure(progress_color=self.color_principal)
-        self.volumen_slider.configure(progress_color=self.color_principal, button_color=self.color_principal)
+        self.volumen_slider.configure(
+            progress_color=self.color_principal,
+            button_color=self.color_principal,
+            button_hover_color=self.ajustar_brillo(self.color_principal, 1.2),
+        )
         botones_principales = [
             self.boton_reproducir_pausar,
             self.boton_aleatorio,
@@ -332,37 +507,21 @@ class VistaReproductor:
             self.boton_repetir,
             self.boton_mostrar_cola,
             self.boton_agregar_cola,
+            self.boton_tema,
             self.boton_mute,
         ]
-        for widget in botones_principales:
-            widget.configure(fg_color=self.color_principal, hover_color=self.ajustar_brillo(self.color_principal, 1.2))
-        for widget in [self.frame_izquierdo, self.frame_derecho]:
-            widget.configure(fg_color=self.color_secundario)
-        botones_especiales = [
-            self.boton_reproducir_pausar,
-            self.boton_aleatorio,
-            self.boton_siguiente,
-            self.boton_anterior,
-            self.boton_adelantar,
-            self.boton_retroceder,
-            self.boton_repetir,
-            self.boton_me_gusta,
-            self.boton_favorito,
-            self.boton_mostrar_cola,
-            self.boton_agregar_cola,
-        ]
-        for widget in self.frame_controles.winfo_children():
-            if widget not in botones_especiales:
-                widget.configure(
-                    fg_color=self.color_secundario, hover_color=self.ajustar_brillo(self.color_secundario, 1.2)
-                )
+        for boton in botones_principales:
+            boton.configure(fg_color=self.color_principal, hover_color=self.ajustar_brillo(self.color_principal, 1.2))
         self.boton_me_gusta.configure(fg_color="#FF0000", hover_color="#FF3333")
-        self.boton_favorito.configure(fg_color="#eed010", hover_color="#FFFF33")
-        self.entrada_busqueda.configure(border_color=self.color_principal)
+        self.boton_favorito.configure(fg_color="#FFD700", hover_color="#FFED4A")
+        self.entrada_busqueda.configure(
+            border_color=self.color_principal, fg_color=self.ajustar_brillo(self.color_secundario, 1.2)
+        )
         self.combobox_ordenar.configure(
             button_color=self.color_principal,
             border_color=self.color_principal,
             button_hover_color=self.ajustar_brillo(self.color_principal, 1.2),
+            fg_color=self.ajustar_brillo(self.color_secundario, 1.2),
         )
         self.notebook.configure(segmented_button_selected_color=self.color_principal)
         for lista in [self.lista_canciones, self.lista_me_gusta, self.lista_favoritos, self.lista_personalizadas]:
@@ -386,21 +545,29 @@ class VistaReproductor:
         self.barra_progreso.set(valor)
         minutos, segundos = divmod(int(tiempo_actual), 60)
         self.tiempo_actual.configure(text=f"{minutos}:{segundos:02d}")
+        if self.reproduciendo and not self.pausado:
+            self.actualizar_visualizador()
 
     def actualizar_boton_reproducir_pausar(self, reproduciendo, pausado):
-        self.boton_reproducir_pausar.configure(text="⏸" if reproduciendo and not pausado else "▶")
+        self.boton_reproducir_pausar.configure(
+            text=self.iconos["pause"] if reproduciendo and not pausado else self.iconos["play"]
+        )
 
     def actualizar_boton_aleatorio(self, activo):
-        self.boton_aleatorio.configure(fg_color="#22559b" if activo else "transparent")
+        self.boton_aleatorio.configure(
+            fg_color=self.color_principal if activo else self.ajustar_brillo(self.color_secundario, 1.2)
+        )
 
     def actualizar_boton_repetir(self, activo):
-        self.boton_repetir.configure(fg_color="#22559b" if activo else "transparent")
+        self.boton_repetir.configure(
+            fg_color=self.color_principal if activo else self.ajustar_brillo(self.color_secundario, 1.2)
+        )
 
     def actualizar_boton_me_gusta(self, activo):
-        self.boton_me_gusta.configure(fg_color="#ff0000" if activo else self.color_secundario)
+        self.boton_me_gusta.configure(fg_color="#FF0000" if activo else self.ajustar_brillo(self.color_secundario, 1.2))
 
     def actualizar_boton_favorito(self, activo):
-        self.boton_favorito.configure(fg_color="#eed010" if activo else self.color_secundario)
+        self.boton_favorito.configure(fg_color="#FFD700" if activo else self.ajustar_brillo(self.color_secundario, 1.2))
 
     def actualizar_icono_volumen(self, volumen):
         if volumen == 0:
