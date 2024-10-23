@@ -94,7 +94,7 @@ class VistaReproductor:
     def _crear_visualizador(self):
         self.frame_visualizador = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
         self.frame_visualizador.pack(pady=10)
-        self.canvas_visualizador = tk.Canvas(self.frame_visualizador, width=550, height=80, highlightthickness=0)
+        self.canvas_visualizador = tk.Canvas(self.frame_visualizador, width=550, height=70, highlightthickness=0)
         self.canvas_visualizador.pack(pady=5)
         self.canvas_visualizador.configure(bg=self.color_secundario)
         self.barras_visualizador = []
@@ -102,37 +102,48 @@ class VistaReproductor:
         self.ancho_barra = 4
         self.espacio_entre_barras = 3
         ancho_total = (self.ancho_barra + self.espacio_entre_barras) * self.num_barras
-        inicio_x = (400 - ancho_total) / 2
+        inicio_x = (550 - ancho_total) / 2
         for i in range(self.num_barras):
             x = inicio_x + i * (self.ancho_barra + self.espacio_entre_barras)
             barra = self.canvas_visualizador.create_rectangle(
-                x, 80, x + self.ancho_barra, 79, fill=self.color_principal, width=0
+                x, 80, x + self.ancho_barra, 80, fill=self.color_principal, width=0
             )
             self.barras_visualizador.append(barra)
         self.suavizado_barras = [0] * self.num_barras
         self.reproduciendo = False
         self.pausado = True
+        self.visualizador_activo = False
+
+    def resetear_visualizador(self):
+        for barra in self.barras_visualizador:
+            x0, _, x1, _ = self.canvas_visualizador.coords(barra)
+            self.canvas_visualizador.coords(barra, x0, 80, x1, 80)
+        self.suavizado_barras = [0] * self.num_barras
 
     def iniciar_visualizador(self):
-        self.actualizar_visualizador()
+        if self.reproduciendo and not self.pausado:
+            self.visualizador_activo = True
+            self.actualizar_visualizador()
+
+    def detener_visualizador(self):
+        self.visualizador_activo = False
+        self.resetear_visualizador()
 
     def actualizar_visualizador(self, datos_audio=None):
+        if not self.reproduciendo or self.pausado:
+            self.resetear_visualizador()
+            return
         if datos_audio is None:
-            datos_audio = [random.random() * 0.6 + 0.2 for _ in range(self.num_barras)]
-        if self.reproduciendo and not self.pausado:
-            for i, valor in enumerate(datos_audio):
-                objetivo = valor * 60
-                self.suavizado_barras[i] = self.suavizado_barras[i] * 0.7 + objetivo * 0.3
-                altura = max(1, self.suavizado_barras[i])
-                x0, _, x1, _ = self.canvas_visualizador.coords(self.barras_visualizador[i])
-                self.canvas_visualizador.coords(self.barras_visualizador[i], x0, 80 - altura, x1, 80)
-        else:
-            for i, barra in enumerate(self.barras_visualizador):
-                x0, _, x1, _ = self.canvas_visualizador.coords(barra)
-                self.canvas_visualizador.coords(barra, x0, 79, x1, 80)
-        for barra in self.barras_visualizador:
-            self.canvas_visualizador.itemconfig(barra, fill=self.color_principal)
-        self.root.after(50, self.actualizar_visualizador)
+            datos_audio = [random.random() * 0.8 for _ in range(self.num_barras)]
+        for i, valor in enumerate(datos_audio[: self.num_barras]):
+            objetivo = valor * 80 
+            self.suavizado_barras[i] = self.suavizado_barras[i] * 0.7 + objetivo * 0.3
+            altura = max(1, min(80, self.suavizado_barras[i]))
+            x0, _, x1, _ = self.canvas_visualizador.coords(self.barras_visualizador[i])
+            self.canvas_visualizador.coords(self.barras_visualizador[i], x0, 80 - altura, x1, 80)
+            self.canvas_visualizador.itemconfig(self.barras_visualizador[i], fill=self.color_principal)
+        if self.visualizador_activo:
+            self.root.after(50, self.actualizar_visualizador)
 
     def generar_color_espectro(self, hue, valor):
         sat = 0.8
@@ -140,9 +151,30 @@ class VistaReproductor:
         rgb = colorsys.hsv_to_rgb(hue, sat, val)
         return f"#{int(rgb[0]*255):02x}{int(rgb[1]*255):02x}{int(rgb[2]*255):02x}"
 
-    def animar_visualizador(self, datos_audio):
-        datos_nuevos = [max(0, valor - 5) for valor in datos_audio]
-        self.actualizar_visualizador(datos_nuevos)
+    def animar_visualizador(self, datos_audio=None):
+        if not self.reproduciendo or self.pausado:
+            self.detener_visualizador()
+            return
+        if datos_audio is None:
+            datos_audio = [random.random() * 0.8 for _ in range(self.num_barras)]
+        datos_normalizados = []
+        max_valor = max(abs(valor) for valor in datos_audio) if datos_audio else 1
+        if max_valor > 0:
+            factor_escala = 1.0 / max_valor
+            chunk_size = max(1, len(datos_audio) // self.num_barras)
+            for i in range(self.num_barras):
+                inicio = i * chunk_size
+                fin = min(inicio + chunk_size, len(datos_audio))
+                chunk = datos_audio[inicio:fin] if datos_audio else [random.random() * 0.8]
+                if chunk:
+                    valor_promedio = sum(abs(x) for x in chunk) / len(chunk)
+                    valor_normalizado = min(1.0, valor_promedio * factor_escala)
+                    datos_normalizados.append(valor_normalizado)
+                else:
+                    datos_normalizados.append(random.random() * 0.8)
+        else:
+            datos_normalizados = [random.random() * 0.8 for _ in range(self.num_barras)]
+        self.actualizar_visualizador(datos_normalizados)
 
     def animar_boton(self, boton):
         color_original = boton.cget("fg_color")
@@ -197,7 +229,9 @@ class VistaReproductor:
         self.reproduciendo = reproduciendo
         self.pausado = pausado
         if reproduciendo and not pausado:
-            self.actualizar_visualizador()
+            self.iniciar_visualizador()
+        else:
+            self.detener_visualizador()
         self.actualizar_boton_reproducir_pausar(reproduciendo, pausado)
 
     def _crear_widgets(self):
@@ -341,12 +375,12 @@ class VistaReproductor:
             segmented_button_unselected_color="#222222",
         )
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=12)
-        for tab in ["Todas", "Me gusta", "Favoritos", "Listas personalizadas"]:
+        for tab in ["Canciones", "Me gusta", "Favoritos", "Listas de reproducción"]:
             self.notebook.add(tab)
-        self._crear_lista_canciones(self.notebook.tab("Todas"), "lista_canciones")
+        self._crear_lista_canciones(self.notebook.tab("Canciones"), "lista_canciones")
         self._crear_lista_canciones(self.notebook.tab("Me gusta"), "lista_me_gusta")
         self._crear_lista_canciones(self.notebook.tab("Favoritos"), "lista_favoritos")
-        self._crear_listas_personalizadas(self.notebook.tab("Listas personalizadas"))
+        self._crear_listas_personalizadas(self.notebook.tab("Listas de reproducción"))
 
     def _crear_botones_inferiores(self):
         self.frame_botones_inferiores = ctk.CTkFrame(self.frame_derecho, fg_color="transparent")
