@@ -134,9 +134,9 @@ class VistaReproductor:
             self.resetear_visualizador()
             return
         if datos_audio is None:
-            datos_audio = [random.random() * 0.8 for _ in range(self.num_barras)]
+            datos_audio = [random.random() * 0.9 for _ in range(self.num_barras)]
         for i, valor in enumerate(datos_audio[: self.num_barras]):
-            objetivo = valor * 80 
+            objetivo = valor * 80
             self.suavizado_barras[i] = self.suavizado_barras[i] * 0.7 + objetivo * 0.3
             altura = max(1, min(80, self.suavizado_barras[i]))
             x0, _, x1, _ = self.canvas_visualizador.coords(self.barras_visualizador[i])
@@ -254,7 +254,7 @@ class VistaReproductor:
 
     def _crear_controles_reproduccion(self):
         self.barra_progreso = ctk.CTkProgressBar(
-            self.frame_izquierdo, width=575, height=4, corner_radius=2, fg_color="#222222", progress_color="#2EBD59"
+            self.frame_izquierdo, width=650, height=4, corner_radius=2, fg_color="#222222", progress_color="#2EBD59"
         )
         self.barra_progreso.pack(pady=15)
         self._crear_frame_tiempo()
