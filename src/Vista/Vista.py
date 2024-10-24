@@ -81,8 +81,11 @@ class VistaReproductor:
     def _crear_controles_superiores(self):
         self.frame_superior = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
         self.frame_superior.pack(fill=tk.X, pady=(10, 0), padx=10)
+        self.contenedor_tema = ctk.CTkFrame(self.frame_superior, width=35, height=35, fg_color="transparent")
+        self.contenedor_tema.pack(side=tk.RIGHT)
+        # self.contenedor_tema.pack_propagate(True)
         self.boton_tema = ctk.CTkButton(
-            self.frame_superior,
+            self.contenedor_tema,
             text=self.iconos["claro"] if self.tema_actual == "oscuro" else self.iconos["oscuro"],
             width=35,
             height=35,
@@ -100,6 +103,19 @@ class VistaReproductor:
         self.tema_actual = "claro" if self.tema_actual == "oscuro" else "oscuro"
         self.actualizar_tema(self.tema_actual)
         self.boton_tema.configure(text=self.iconos["claro"] if self.tema_actual == "oscuro" else self.iconos["oscuro"])
+
+    def actualizar_tema(self, modo):
+        ctk.set_appearance_mode(modo)
+        colores = {
+            "oscuro": {"principal": "#2EBD59", "secundario": "#222222", "fondo": "#111111", "texto": "#FFFFFF"},
+            "claro": {"principal": "#1DB954", "secundario": "#EEEEEE", "fondo": "#FFFFFF", "texto": "#000000"},
+        }
+        self.color_principal = colores[modo]["principal"]
+        self.color_secundario = colores[modo]["secundario"]
+        self.actualizar_colores()
+        self.canvas_visualizador.configure(bg=self.color_secundario)
+        for barra in self.barras_visualizador:
+            self.canvas_visualizador.itemconfig(barra, fill=self.color_principal)
 
     def _crear_visualizador(self):
         self.frame_visualizador = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
@@ -190,19 +206,6 @@ class VistaReproductor:
         color_original = boton.cget("fg_color")
         boton.configure(fg_color=self.color_principal)
         self.root.after(100, lambda: boton.configure(fg_color=color_original))
-
-    def actualizar_tema(self, modo):
-        ctk.set_appearance_mode(modo)
-        colores = {
-            "oscuro": {"principal": "#2EBD59", "secundario": "#222222", "fondo": "#111111", "texto": "#FFFFFF"},
-            "claro": {"principal": "#1DB954", "secundario": "#EEEEEE", "fondo": "#FFFFFF", "texto": "#000000"},
-        }
-        self.color_principal = colores[modo]["principal"]
-        self.color_secundario = colores[modo]["secundario"]
-        self.actualizar_colores()
-        self.canvas_visualizador.configure(bg=self.color_secundario)
-        for barra in self.barras_visualizador:
-            self.canvas_visualizador.itemconfig(barra, fill=self.color_principal)
 
     def actualizar_estado_reproduccion(self, reproduciendo, pausado):
         self.reproduciendo = reproduciendo
@@ -409,7 +412,7 @@ class VistaReproductor:
 
     def _crear_busqueda_ordenar(self):
         self.frame_busqueda_ordenar = ctk.CTkFrame(self.frame_derecho, fg_color="transparent")
-        self.frame_busqueda_ordenar.pack(fill=tk.X, pady=12, padx=15)
+        self.frame_busqueda_ordenar.pack(fill=tk.X, pady=4, padx=15)
         self.entrada_busqueda = ctk.CTkEntry(
             self.frame_busqueda_ordenar,
             placeholder_text="Buscar...",
@@ -438,7 +441,7 @@ class VistaReproductor:
     def _crear_notebook(self):
         self.notebook = ctk.CTkTabview(
             self.frame_derecho,
-            height=400,
+            height=350,
             fg_color="#222222",
             segmented_button_fg_color="#111111",
             segmented_button_selected_color="#2EBD59",
@@ -447,7 +450,7 @@ class VistaReproductor:
             segmented_button_unselected_hover_color="#333333",
             text_color=self.obtener_color_texto("222222"),
         )
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=12)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=15)
         for tab in ["Canciones", "Me gusta", "Favoritos", "Listas de reproducción"]:
             self.notebook.add(tab)
         self._crear_lista_canciones(self.notebook.tab("Canciones"), "lista_canciones")
@@ -475,10 +478,10 @@ class VistaReproductor:
             )
             setattr(self, f"boton_{nombre}", btn)
         self.boton_seleccionar_carpeta.pack(side=tk.TOP, pady=(0, 5), fill=tk.X)
-        self.boton_importar.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 2))
-        self.boton_exportar.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(2, 0))
-        self.boton_importar.configure(command=self.controlador.importar_lista)
-        self.boton_exportar.configure(command=self.controlador.exportar_lista)
+        # self.boton_importar.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 2))
+        # self.boton_exportar.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=(2, 0))
+        # self.boton_importar.configure(command=self.controlador.importar_lista)
+        # self.boton_exportar.configure(command=self.controlador.exportar_lista)
 
     def _configurar_grid_derecho(self):
         self.frame_derecho.grid_rowconfigure(0, weight=0)
@@ -543,12 +546,12 @@ class VistaReproductor:
                     command=lambda c=cancion: self.controlador.reproducir_cancion(c),
                     fg_color=color_botones,
                     hover_color=color_hover,
-                    height=30,
+                    height=25,
                     corner_radius=8,
                     font=("Roboto", 12),
                     text_color=text_color,
                 )
-                btn.pack(fill=tk.X, pady=2, padx=4)
+                btn.pack(fill=tk.X, pady=2, padx=2)
             except Exception as e:
                 print(f"Error al crear botón para {cancion.titulo}: {str(e)}")
 
@@ -658,13 +661,13 @@ class VistaReproductor:
             text_color=self.obtener_color_texto(self.color_secundario[1:]),
         )
         self.notebook.configure(
-            segmented_button_selected_color=self.color_principal,
+            segmented_button_selected_color=self.ajustar_brillo(self.color_principal, 1.8),
             segmented_button_fg_color=self.ajustar_brillo(self.color_secundario, 1.1),
             fg_color=self.ajustar_brillo(self.color_secundario, 0.9),
             segmented_button_selected_hover_color=self.ajustar_brillo(self.color_principal, 1.1),
-            segmented_button_unselected_color=self.ajustar_brillo(self.color_secundario, 1.1),
-            segmented_button_unselected_hover_color=self.ajustar_brillo(self.color_secundario, 1.2),
-            text_color=self.obtener_color_texto(self.color_secundario[1:]),
+            segmented_button_unselected_color=self.ajustar_brillo(self.color_principal, 1.1),
+            segmented_button_unselected_hover_color=self.ajustar_brillo(self.color_principal, 1.2),
+            text_color=self.obtener_color_texto(self.color_principal[1:]),
         )
         for lista in [self.lista_canciones, self.lista_me_gusta, self.lista_favoritos]:
             lista.configure(fg_color=color_frames)
