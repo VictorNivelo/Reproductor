@@ -46,6 +46,7 @@ class ControladorReproductor:
         pygame.mixer.init()
         self.cargar_configuracion()
         self.CAMBIAR_POSICION_EVENTO = pygame.USEREVENT + 1
+        self.modo_repetir = "none"
 
     def iniciar(self):
         self._configurar_botones()
@@ -608,3 +609,9 @@ class ControladorReproductor:
             self.pausado = False
             self.vista.actualizar_boton_reproducir_pausar(self.reproduciendo, self.pausado)
             threading.Thread(target=self.actualizar_progreso, daemon=True).start()
+
+    def cambiar_modo_repetir(self):
+        modos = ["none", "one", "all"]
+        indice_actual = modos.index(self.modo_repetir)
+        self.modo_repetir = modos[(indice_actual + 1) % len(modos)]
+        self.vista.actualizar_boton_repetir(self.modo_repetir)

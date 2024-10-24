@@ -1,4 +1,5 @@
 from customtkinter import CTkScrollableFrame, CTkButton, CTkImage
+from Vista.Tooltip import ToolTip
 from tkinter import messagebox
 import customtkinter as ctk
 from PIL import Image
@@ -20,7 +21,7 @@ class VistaReproductor:
         self.root.title("Reproductor de Música")
         self.root.geometry("1200x720")
         self.root.minsize(1200, 720)
-        self.tema_actual = "dark"
+        self.tema_actual = "oscuro"
         ctk.set_appearance_mode(self.tema_actual)
         ctk.set_default_color_theme("blue")
         self.color_principal = "#2EBD59"
@@ -33,20 +34,22 @@ class VistaReproductor:
 
     def cargar_iconos(self):
         self.iconos = {
+            "adelantar": "⏩",
+            "retroceder": "⏪",
             "play": "▶️",
-            "pause": "⏸️",
-            "next": "⏭️",
-            "prev": "⏮️",
-            "shuffle": "🔀",
-            "repeat": "🔁",
-            "volume": "🔊",
-            "mute": "🔇",
-            "heart": "❤️",
-            "star": "⭐",
-            "plus": "➕",
-            "queue": "📋",
-            "light": "☀️",
-            "dark": "🌙",
+            "pausa": "⏸️",
+            "siguiente": "⏭️",
+            "anterior": "⏮️",
+            "aleatorio": "🔀",
+            "repetir": "🔁",
+            "volumen": "🔊",
+            "silencio": "🔇",
+            "me_gusta": "❤️",
+            "favorito": "⭐",
+            "agregar": "➕",
+            "cola": "📋",
+            "claro": "☀️",
+            "oscuro": "🌙",
         }
 
     def _crear_frame_principal(self):
@@ -75,21 +78,22 @@ class VistaReproductor:
         self.frame_superior.pack(fill=tk.X, pady=(10, 0), padx=10)
         self.boton_tema = ctk.CTkButton(
             self.frame_superior,
-            text=self.iconos["light"] if self.tema_actual == "dark" else self.iconos["dark"],
-            width=36,
-            height=36,
+            text=self.iconos["claro"] if self.tema_actual == "oscuro" else self.iconos["oscuro"],
+            width=35,
+            height=35,
             font=self.fuente_principal,
             fg_color="#333333",
             hover_color="#444444",
-            corner_radius=18,
+            corner_radius=12,
             command=self.cambiar_tema,
         )
         self.boton_tema.pack(side=tk.RIGHT)
+        ToolTip(self.boton_tema, "Cambiar tema")
 
     def cambiar_tema(self):
-        self.tema_actual = "light" if self.tema_actual == "dark" else "dark"
+        self.tema_actual = "claro" if self.tema_actual == "oscuro" else "oscuro"
         self.actualizar_tema(self.tema_actual)
-        self.boton_tema.configure(text=self.iconos["light"] if self.tema_actual == "dark" else self.iconos["dark"])
+        self.boton_tema.configure(text=self.iconos["claro"] if self.tema_actual == "oscuro" else self.iconos["oscuro"])
 
     def _crear_visualizador(self):
         self.frame_visualizador = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
@@ -181,42 +185,11 @@ class VistaReproductor:
         boton.configure(fg_color=self.color_principal)
         self.root.after(100, lambda: boton.configure(fg_color=color_original))
 
-    def _crear_botones_control(self):
-        self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent", width=800, height=50)
-        self.frame_controles.pack(pady=12)
-        self.frame_controles.pack_propagate(False)
-        botones_control = [
-            (self.iconos["repeat"], "repetir", 36),
-            (self.iconos["shuffle"], "aleatorio", 36),
-            (self.iconos["prev"], "anterior", 36),
-            (self.iconos["play"], "reproducir_pausar", 40),
-            (self.iconos["next"], "siguiente", 36),
-            (self.iconos["heart"], "me_gusta", 36),
-            (self.iconos["star"], "favorito", 36),
-            (self.iconos["queue"], "mostrar_cola", 36),
-            (self.iconos["plus"], "agregar_cola", 36),
-        ]
-        for icono, nombre, tamaño in botones_control:
-            btn = ctk.CTkButton(
-                self.frame_controles,
-                text=icono,
-                width=tamaño,
-                height=tamaño,
-                font=self.fuente_principal,
-                fg_color="#333333",
-                hover_color="#444444",
-                corner_radius=tamaño // 1.5,
-                command=lambda n=nombre: self.animar_boton(getattr(self, f"boton_{n}")),
-            )
-            setattr(self, f"boton_{nombre}", btn)
-            btn.pack(side=tk.LEFT, padx=3)
-        self.boton_reproducir_pausar.configure(fg_color="#1DB954", hover_color="#1ED760")
-
     def actualizar_tema(self, modo):
         ctk.set_appearance_mode(modo)
         colores = {
-            "dark": {"principal": "#2EBD59", "secundario": "#222222", "fondo": "#111111", "texto": "#FFFFFF"},
-            "light": {"principal": "#1DB954", "secundario": "#EEEEEE", "fondo": "#FFFFFF", "texto": "#000000"},
+            "oscuro": {"principal": "#2EBD59", "secundario": "#222222", "fondo": "#111111", "texto": "#FFFFFF"},
+            "claro": {"principal": "#1DB954", "secundario": "#EEEEEE", "fondo": "#FFFFFF", "texto": "#000000"},
         }
         self.color_principal = colores[modo]["principal"]
         self.color_secundario = colores[modo]["secundario"]
@@ -245,75 +218,86 @@ class VistaReproductor:
         self.caratula.pack_propagate(False)
 
     def _crear_info_cancion(self):
-        self.titulo = ctk.CTkLabel(self.frame_izquierdo, text="", font=self.fuente_titulos)
+        self.frame_info = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_info.pack(fill=tk.X, padx=20)
+        self.titulo = ctk.CTkLabel(self.frame_info, text="", font=self.fuente_titulos)
         self.titulo.pack()
-        self.artista = ctk.CTkLabel(self.frame_izquierdo, text="", font=self.fuente_principal)
+        self.artista = ctk.CTkLabel(self.frame_info, text="", font=self.fuente_principal)
         self.artista.pack()
-        self.album = ctk.CTkLabel(self.frame_izquierdo, text="", font=self.fuente_principal)
+        self.album = ctk.CTkLabel(self.frame_info, text="", font=self.fuente_principal)
         self.album.pack()
 
     def _crear_controles_reproduccion(self):
+        self.frame_progreso = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_progreso.pack(fill=tk.X, padx=15)
         self.barra_progreso = ctk.CTkProgressBar(
-            self.frame_izquierdo, width=650, height=4, corner_radius=2, fg_color="#222222", progress_color="#2EBD59"
+            self.frame_progreso, height=4, corner_radius=2, fg_color="#222222", progress_color="#2EBD59"
         )
-        self.barra_progreso.pack(pady=15)
+        self.barra_progreso.pack(fill=tk.X, pady=8)
         self._crear_frame_tiempo()
         self._crear_botones_control()
 
     def _crear_frame_tiempo(self):
-        self.frame_tiempo = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
-        self.frame_tiempo.pack(fill=tk.X, pady=2)
+        self.frame_tiempo = ctk.CTkFrame(self.frame_progreso, fg_color="transparent")
+        self.frame_tiempo.pack(fill=tk.X)
         self.tiempo_actual = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=self.fuente_principal)
-        self.tiempo_actual.pack(side=tk.LEFT, padx=15)
+        self.tiempo_actual.pack(side=tk.LEFT)
         self.tiempo_total = ctk.CTkLabel(self.frame_tiempo, text="0:00", font=self.fuente_principal)
-        self.tiempo_total.pack(side=tk.RIGHT, padx=15)
+        self.tiempo_total.pack(side=tk.RIGHT)
 
     def _crear_botones_control(self):
-        self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent", width=800, height=50)
-        self.frame_controles.pack(pady=12)
-        self.frame_controles.pack_propagate(False)
+        self.frame_controles = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
+        self.frame_controles.pack(pady=5)
         botones_control = [
-            ("🔁", "repetir", 36),
-            ("🔀", "aleatorio", 36),
-            ("⏮", "anterior", 36),
-            ("⏪", "retroceder", 36),
-            ("▶", "reproducir_pausar", 40),
-            ("⏩", "adelantar", 36),
-            ("⏭", "siguiente", 36),
-            ("⭐", "favorito", 36),
-            ("❤", "me_gusta", 36),
-            ("👁", "mostrar_cola", 36),
-            ("➕", "agregar_cola", 36),
+            (self.iconos["repetir"], "repetir", 35, "Repetir"),
+            (self.iconos["aleatorio"], "aleatorio", 35, "Aleatorio"),
+            (self.iconos["anterior"], "anterior", 35, "Anterior"),
+            (self.iconos["retroceder"], "retroceder", 35, "Retroceder"),
+            (self.iconos["play"], "reproducir_pausar", 35, "Reproducir/Pausar"),
+            (self.iconos["adelantar"], "adelantar", 35, "Adelantar"),
+            (self.iconos["siguiente"], "siguiente", 35, "Siguiente"),
+            (self.iconos["me_gusta"], "me_gusta", 35, "Me gusta"),
+            (self.iconos["favorito"], "favorito", 35, "Favorito"),
+            (self.iconos["cola"], "mostrar_cola", 35, "Ver cola"),
+            (self.iconos["agregar"], "agregar_cola", 35, "Agregar a cola"),
         ]
-        for texto, nombre, tamaño in botones_control:
+        self.tooltips = {}
+        for icono, nombre, tamaño, tooltip in botones_control:
             btn = ctk.CTkButton(
                 self.frame_controles,
-                text=texto,
+                text=icono,
                 width=tamaño,
                 height=tamaño,
-                font=("Inter", 18),
+                font=("Roboto", 12),
                 fg_color="#333333",
                 hover_color="#444444",
-                corner_radius=tamaño // 1.5,
+                corner_radius=12,
+                command=lambda n=nombre: self.animar_boton(getattr(self, f"boton_{n}")),
             )
             setattr(self, f"boton_{nombre}", btn)
-            btn.pack(side=tk.LEFT, padx=3)
-        self.boton_reproducir_pausar.configure(fg_color="#1DB954", hover_color="#1ED760", font=("Inter", 18))
+            btn.pack(side=tk.LEFT, padx=2)
+            tooltip_obj = ToolTip(btn, tooltip, self.color_secundario, "#FFFFFF")
+            self.tooltips[nombre] = tooltip_obj
+
+    def actualizar_tooltips(self):
+        for tooltip in self.tooltips.values():
+            tooltip.actualizar_colores(self.ajustar_brillo(self.color_secundario, 1.2), "#FFFFFF")
 
     def _crear_controles_volumen(self):
         self.frame_volumen = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
         self.frame_volumen.pack(pady=12, fill=tk.X, padx=40)
         self.boton_mute = ctk.CTkButton(
             self.frame_volumen,
-            text=self.iconos["volume"],
-            width=36,
-            height=36,
-            font=self.fuente_principal,
+            text=self.iconos["volumen"],
+            width=35,
+            height=35,
+            font=("Roboto", 12),
             fg_color="#222222",
             hover_color="#333333",
-            corner_radius=14,
+            corner_radius=12,
         )
         self.boton_mute.pack(side=tk.LEFT, padx=5)
+        ToolTip(self.boton_mute, "Silenciar")
         self.volumen_slider = ctk.CTkSlider(
             self.frame_volumen,
             from_=0,
@@ -323,9 +307,42 @@ class VistaReproductor:
             progress_color="#2EBD59",
             button_color="#2EBD59",
             button_hover_color="#1ed760",
+            command=lambda value: self.actualizar_label_volumen(value),
         )
         self.volumen_slider.set(100)
         self.volumen_slider.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        self.label_volumen = ctk.CTkLabel(self.frame_volumen, text="", font=("Roboto", 12))
+        self.label_volumen.pack(side=tk.RIGHT)
+
+    def actualizar_label_volumen(self, valor):
+        porcentaje = int(valor)
+        self.label_volumen.configure(text=f"{porcentaje}%")
+        self.actualizar_icono_volumen(porcentaje / 100)
+        self.controlador.cambiar_volumen(porcentaje / 100)
+
+    def actualizar_volumen_desde_slider(self, valor):
+        porcentaje = int(valor)
+        self.label_volumen.configure(text=f"{porcentaje}%")
+        if porcentaje == 0:
+            self.boton_mute.configure(text=self.iconos["silencio"])
+        elif porcentaje < 33:
+            self.boton_mute.configure(text="🔈")
+        elif porcentaje < 66:
+            self.boton_mute.configure(text="🔉")
+        else:
+            self.boton_mute.configure(text=self.iconos["volumen"])
+        self.controlador.cambiar_volumen(porcentaje / 100)
+
+    def cambiar_volumen(self, valor):
+        volumen = float(valor) / 100
+        self.controlador.cambiar_volumen(volumen)
+        porcentaje = int(valor)
+        self.label_volumen.configure(text=f"{porcentaje}%")
+        self.actualizar_icono_volumen(volumen)
+
+    def actualizar_porcentaje_volumen(self, valor):
+        porcentaje = int(valor)
+        self.label_volumen.configure(text=f"{porcentaje}%")
 
     def _crear_frame_listas(self):
         self.frame_listas = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
@@ -394,7 +411,7 @@ class VistaReproductor:
             btn = ctk.CTkButton(
                 self.frame_botones_inferiores,
                 text=texto,
-                height=36,
+                height=40,
                 font=("Inter", 12),
                 fg_color="#333333",
                 hover_color="#444444",
@@ -561,6 +578,7 @@ class VistaReproductor:
         for lista in [self.lista_canciones, self.lista_me_gusta, self.lista_favoritos, self.lista_personalizadas]:
             lista.configure(fg_color=self.ajustar_brillo(self.color_secundario, 0.8))
         self.actualizar_lista_canciones(self.controlador.modelo.canciones)
+        self.actualizar_tooltips()
 
     def actualizar_listas_personalizadas(self, listas):
         for widget in self.lista_personalizadas.winfo_children():
@@ -584,7 +602,7 @@ class VistaReproductor:
 
     def actualizar_boton_reproducir_pausar(self, reproduciendo, pausado):
         self.boton_reproducir_pausar.configure(
-            text=self.iconos["pause"] if reproduciendo and not pausado else self.iconos["play"]
+            text=self.iconos["pausa"] if reproduciendo and not pausado else self.iconos["play"]
         )
 
     def actualizar_boton_aleatorio(self, activo):
@@ -592,10 +610,20 @@ class VistaReproductor:
             fg_color=self.color_principal if activo else self.ajustar_brillo(self.color_secundario, 1.2)
         )
 
-    def actualizar_boton_repetir(self, activo):
+    def actualizar_boton_repetir(self, estado):
+        if isinstance(estado, bool):
+            estado = "none" if not estado else "all"
+        iconos_repetir = {"none": "🔁", "one": "🔂", "all": "↻"}
         self.boton_repetir.configure(
-            fg_color=self.color_principal if activo else self.ajustar_brillo(self.color_secundario, 1.2)
+            text=iconos_repetir[estado],
+            fg_color=self.color_principal if estado != "none" else self.ajustar_brillo(self.color_secundario, 1.2),
         )
+
+    def actualizar_volumen(self, volumen):
+        porcentaje = int(volumen * 100)
+        self.volumen_slider.set(porcentaje)
+        self.label_volumen.configure(text=f"{porcentaje}%")
+        self.actualizar_icono_volumen(volumen)
 
     def actualizar_boton_me_gusta(self, activo):
         self.boton_me_gusta.configure(fg_color="#FF0000" if activo else self.ajustar_brillo(self.color_secundario, 1.2))
@@ -605,11 +633,13 @@ class VistaReproductor:
 
     def actualizar_icono_volumen(self, volumen):
         if volumen == 0:
-            self.boton_mute.configure(text="🔇")
-        elif volumen < 0.5:
+            self.boton_mute.configure(text=self.iconos["silencio"])
+        elif volumen < 0.33:
+            self.boton_mute.configure(text="🔈")
+        elif volumen < 0.66:
             self.boton_mute.configure(text="🔉")
         else:
-            self.boton_mute.configure(text="🔊")
+            self.boton_mute.configure(text=self.iconos["volumen"])
 
     def seleccionar_directorio(self):
         return ctk.filedialog.askdirectory()
@@ -662,17 +692,17 @@ class VistaReproductor:
             ).pack(pady=5)
         result = tk.StringVar()
 
-        def on_accept():
+        def aceptar():
             result.set(formato.get())
             dialog.destroy()
 
-        def on_cancel():
+        def cancelar():
             result.set("")
             dialog.destroy()
 
         btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
         btn_frame.pack(pady=15)
-        for texto, comando in [("Aceptar", on_accept), ("Cancelar", on_cancel)]:
+        for texto, comando in [("Aceptar", aceptar), ("Cancelar", cancelar)]:
             ctk.CTkButton(
                 btn_frame,
                 text=texto,
