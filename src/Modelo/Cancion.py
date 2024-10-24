@@ -19,7 +19,7 @@ class Cancion:
         self.titulo = self._obtener_metadato("title")
         self.artista = self._obtener_metadato("artist")
         self.album = self._obtener_metadato("album")
-        self.año = self._obtener_metadato("date")
+        self.anio = self._obtener_metadato("date")
         self.numero_pista = self._obtener_metadato("tracknumber")
         self.duracion = self._obtener_duracion()
         self.caratula = self._obtener_caratula()
@@ -66,7 +66,7 @@ class Cancion:
             "titulo": self.titulo,
             "artista": self.artista,
             "album": self.album,
-            "año": self.año,
+            "año": self.anio,
             "numero_pista": self.numero_pista,
             "duracion": self.duracion,
             "ruta": self.ruta,

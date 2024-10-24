@@ -271,12 +271,12 @@ class VistaReproductor:
             (self.iconos["agregar"], "agregar_cola", 35, "Agregar a cola"),
         ]
         self.tooltips = {}
-        for icono, nombre, tamaño, tooltip in botones_control:
+        for icono, nombre, tamanio, tooltip in botones_control:
             btn = ctk.CTkButton(
                 self.frame_controles,
                 text=icono,
-                width=tamaño,
-                height=tamaño,
+                width=tamanio,
+                height=tamanio,
                 font=("Roboto", 12),
                 fg_color="#333333",
                 hover_color="#444444",

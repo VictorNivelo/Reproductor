@@ -500,7 +500,7 @@ class ControladorReproductor:
         elif criterio == "álbum":
             key = lambda x: x.album
         elif criterio == "año":
-            key = lambda x: x.año
+            key = lambda x: x.anio
         if lista_actual == "Todas":
             canciones = sorted(self.modelo.canciones, key=key)
             self.vista.actualizar_lista_canciones(canciones)
