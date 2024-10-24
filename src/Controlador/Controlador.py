@@ -83,9 +83,13 @@ class ControladorReproductor:
 
     def _actualizar_interfaz(self):
         self.vista.volumen_slider.set(self.volumen * 100)
-        self.vista.actualizar_icono_volumen(self.volumen)
+        self.vista.actualizar_volumen(self.volumen * 100)
         self.vista.actualizar_boton_aleatorio(self.modo_aleatorio)
-        self.vista.actualizar_boton_repetir(self.modo_repetir)
+        if isinstance(self.modo_repetir, bool):
+            modo = "none" if not self.modo_repetir else "all"
+        else:
+            modo = self.modo_repetir
+        self.vista.actualizar_boton_repetir(modo)
 
     def cargar_configuracion(self):
         self._crear_directorios()
@@ -384,16 +388,20 @@ class ControladorReproductor:
         self.cola_reproduccion.append(cancion)
         self.vista.mostrar_cola(self.cola_reproduccion)
 
-    def cambiar_volumen(self, volumen: float):
-        self.volumen = float(volumen) / 100
+    def cambiar_volumen(self, valor):
+        volumen = float(valor) / 100
+        self.volumen = volumen
         if not self.mute:
-            pygame.mixer.music.set_volume(self.volumen)
+            pygame.mixer.music.set_volume(volumen)
+        self.vista.actualizar_porcentaje_volumen(valor)
         self.guardar_configuracion()
 
     def alternar_mute(self):
         self.mute = not self.mute
         pygame.mixer.music.set_volume(0 if self.mute else self.volumen)
-        self.vista.actualizar_icono_volumen(0 if self.mute else self.volumen)
+        self.vista.boton_mute.configure(
+            text=self.vista.iconos["silencio"] if self.mute else self.vista.iconos["volumen_alto"]
+        )
 
     def cambiar_posicion(self, segundos: int):
         pygame.event.post(pygame.event.Event(self.CAMBIAR_POSICION_EVENTO, {"tiempo": segundos}))

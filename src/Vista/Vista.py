@@ -6,6 +6,7 @@ from PIL import Image
 import tkinter as tk
 import colorsys
 import random
+import pygame
 
 
 class VistaReproductor:
@@ -42,7 +43,11 @@ class VistaReproductor:
             "anterior": "⏮️",
             "aleatorio": "🔀",
             "repetir": "🔁",
-            "volumen": "🔊",
+            "repetir_una": "🔂",
+            "repetir_todo": "↻",
+            "volumen_alto": "🔊",
+            "volumen_medio": "🔉",
+            "volumen_bajo": "🔈",
             "silencio": "🔇",
             "me_gusta": "❤️",
             "favorito": "⭐",
@@ -86,6 +91,7 @@ class VistaReproductor:
             hover_color="#444444",
             corner_radius=12,
             command=self.cambiar_tema,
+            text_color=self.obtener_color_texto("333333"),
         )
         self.boton_tema.pack(side=tk.RIGHT)
         ToolTip(self.boton_tema, "Cambiar tema")
@@ -288,13 +294,14 @@ class VistaReproductor:
         self.frame_volumen.pack(pady=12, fill=tk.X, padx=40)
         self.boton_mute = ctk.CTkButton(
             self.frame_volumen,
-            text=self.iconos["volumen"],
+            text=self.iconos["volumen_alto"],
             width=35,
             height=35,
             font=("Roboto", 12),
             fg_color="#222222",
             hover_color="#333333",
             corner_radius=12,
+            command=self.alternar_mute,
         )
         self.boton_mute.pack(side=tk.LEFT, padx=5)
         ToolTip(self.boton_mute, "Silenciar")
@@ -307,42 +314,88 @@ class VistaReproductor:
             progress_color="#2EBD59",
             button_color="#2EBD59",
             button_hover_color="#1ed760",
-            command=lambda value: self.actualizar_label_volumen(value),
+            command=self.actualizar_volumen_desde_slider,
         )
         self.volumen_slider.set(100)
         self.volumen_slider.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
-        self.label_volumen = ctk.CTkLabel(self.frame_volumen, text="", font=("Roboto", 12))
+        self.label_volumen = ctk.CTkLabel(self.frame_volumen, text="100%", font=("Roboto", 12))
         self.label_volumen.pack(side=tk.RIGHT)
+
+    def alternar_mute(self):
+        self.mute = not self.mute
+        if self.mute:
+            pygame.mixer.music.set_volume(0)
+            self.boton_mute.configure(text=self.iconos["silencio"])
+            volumen_actual = self.volumen_slider.get()
+            self.volumen = volumen_actual / 100
+        else:
+            pygame.mixer.music.set_volume(self.volumen)
+            if self.volumen == 0:
+                self.boton_mute.configure(text=self.iconos["silencio"])
+            elif self.volumen < 0.33:
+                self.boton_mute.configure(text=self.iconos["volumen_bajo"])
+            elif self.volumen < 0.66:
+                self.boton_mute.configure(text=self.iconos["volumen_medio"])
+            else:
+                self.boton_mute.configure(text=self.iconos["volumen_alto"])
+        self.guardar_configuracion()
 
     def actualizar_label_volumen(self, valor):
         porcentaje = int(valor)
         self.label_volumen.configure(text=f"{porcentaje}%")
         self.actualizar_icono_volumen(porcentaje / 100)
-        self.controlador.cambiar_volumen(porcentaje / 100)
 
     def actualizar_volumen_desde_slider(self, valor):
         porcentaje = int(valor)
-        self.label_volumen.configure(text=f"{porcentaje}%")
+        volumen = porcentaje / 100
+        self.volumen = volumen
+        if not self.mute:
+            pygame.mixer.music.set_volume(volumen)
+        self.actualizar_porcentaje_volumen(porcentaje)
         if porcentaje == 0:
             self.boton_mute.configure(text=self.iconos["silencio"])
         elif porcentaje < 33:
-            self.boton_mute.configure(text="🔈")
+            self.boton_mute.configure(text=self.iconos["volumen_bajo"])
         elif porcentaje < 66:
-            self.boton_mute.configure(text="🔉")
+            self.boton_mute.configure(text=self.iconos["volumen_medio"])
         else:
-            self.boton_mute.configure(text=self.iconos["volumen"])
-        self.controlador.cambiar_volumen(porcentaje / 100)
+            self.boton_mute.configure(text=self.iconos["volumen_alto"])
+        self.controlador.cambiar_volumen(valor)
 
     def cambiar_volumen(self, valor):
         volumen = float(valor) / 100
-        self.controlador.cambiar_volumen(volumen)
-        porcentaje = int(valor)
-        self.label_volumen.configure(text=f"{porcentaje}%")
-        self.actualizar_icono_volumen(volumen)
+        self.volumen = volumen
+        if not self.mute:
+            pygame.mixer.music.set_volume(volumen)
+        self.guardar_configuracion()
 
     def actualizar_porcentaje_volumen(self, valor):
         porcentaje = int(valor)
         self.label_volumen.configure(text=f"{porcentaje}%")
+
+    def actualizar_volumen(self, valor):
+        porcentaje = int(valor)
+        self.volumen_slider.set(porcentaje)
+        self.label_volumen.configure(text=f"{porcentaje}%")
+        if porcentaje == 0:
+            icono = self.iconos["silencio"]
+        elif porcentaje < 33:
+            icono = self.iconos["volumen_bajo"]
+        elif porcentaje < 66:
+            icono = self.iconos["volumen_medio"]
+        else:
+            icono = self.iconos["volumen_alto"]
+        self.boton_mute.configure(text=icono)
+
+    def actualizar_icono_volumen(self, volumen):
+        if volumen == 0:
+            self.boton_mute.configure(text=self.iconos["silencio"])
+        elif volumen < 0.33:
+            self.boton_mute.configure(text=self.iconos["volumen_bajo"])
+        elif volumen < 0.66:
+            self.boton_mute.configure(text=self.iconos["volumen_medio"])
+        else:
+            self.boton_mute.configure(text=self.iconos["volumen_alto"])
 
     def _crear_frame_listas(self):
         self.frame_listas = ctk.CTkFrame(self.frame_izquierdo, fg_color="transparent")
@@ -389,7 +442,10 @@ class VistaReproductor:
             fg_color="#222222",
             segmented_button_fg_color="#111111",
             segmented_button_selected_color="#2EBD59",
+            segmented_button_selected_hover_color=self.ajustar_brillo(self.color_principal, 1.1),
             segmented_button_unselected_color="#222222",
+            segmented_button_unselected_hover_color="#333333",
+            text_color=self.obtener_color_texto("222222"),
         )
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=15, pady=12)
         for tab in ["Canciones", "Me gusta", "Favoritos", "Listas de reproducción"]:
@@ -401,7 +457,7 @@ class VistaReproductor:
 
     def _crear_botones_inferiores(self):
         self.frame_botones_inferiores = ctk.CTkFrame(self.frame_derecho, fg_color="transparent")
-        self.frame_botones_inferiores.pack(fill=tk.X, pady=12, padx=15)
+        self.frame_botones_inferiores.pack(fill=tk.X, pady=8, padx=8)
         botones_config = [
             ("Seleccionar carpeta", "seleccionar_carpeta"),
             ("Importar lista", "importar"),
@@ -411,7 +467,7 @@ class VistaReproductor:
             btn = ctk.CTkButton(
                 self.frame_botones_inferiores,
                 text=texto,
-                height=40,
+                height=30,
                 font=("Inter", 12),
                 fg_color="#333333",
                 hover_color="#444444",
@@ -466,29 +522,35 @@ class VistaReproductor:
         for widget in lista.winfo_children():
             widget.destroy()
         canvas = tk.Canvas(lista, bg="#1E1E1E", highlightthickness=0)
-        scrollbar = ctk.CTkScrollbar(lista, orientation="vertical", command=canvas.yview)
         scrollable_frame = ctk.CTkFrame(canvas, fg_color="#1E1E1E")
         scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        def scroll_raton(event):
+            canvas.yview_scroll(-1 * (event.delta // 120), "units")
+
+        canvas.bind_all("<MouseWheel>", scroll_raton)
+        color_botones = self.ajustar_brillo(self.color_principal, 0.9)
+        color_hover = self.ajustar_brillo(self.color_principal, 1.1)
         for cancion in canciones:
             try:
+                text_color = self.obtener_color_texto(color_botones)
                 btn = ctk.CTkButton(
                     scrollable_frame,
                     text=f"{cancion.titulo} - {cancion.artista}",
                     anchor="w",
                     command=lambda c=cancion: self.controlador.reproducir_cancion(c),
-                    fg_color="#333333",
-                    hover_color="#444444",
-                    height=40,
+                    fg_color=color_botones,
+                    hover_color=color_hover,
+                    height=30,
                     corner_radius=8,
                     font=("Roboto", 12),
+                    text_color=text_color,
                 )
                 btn.pack(fill=tk.X, pady=2, padx=4)
             except Exception as e:
                 print(f"Error al crear botón para {cancion.titulo}: {str(e)}")
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
 
     def actualizar_cancion(self, cancion):
         self.titulo.configure(text=cancion.titulo)
@@ -522,6 +584,13 @@ class VistaReproductor:
         color_dominante = tuple(paleta[:3])
         return f"#{color_dominante[0]:02x}{color_dominante[1]:02x}{color_dominante[2]:02x}"
 
+    def obtener_color_texto(self, color_fondo):
+        if color_fondo.startswith("#"):
+            color_fondo = color_fondo[1:]
+        rgb = tuple(int(color_fondo[i : i + 2], 16) for i in (0, 2, 4))
+        brillo = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000
+        return "#000000" if brillo > 128 else "#FFFFFF"
+
     def ajustar_brillo(self, color_hex, factor):
         rgb = tuple(int(color_hex[i : i + 2], 16) for i in (1, 3, 5))
         hsv = colorsys.rgb_to_hsv(rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0)
@@ -538,6 +607,9 @@ class VistaReproductor:
         ]
         for control in controles_principales:
             control.configure(fg_color=self.color_secundario)
+        color_frames = self.ajustar_brillo(self.color_secundario, 0.8)
+        color_botones = self.ajustar_brillo(self.color_principal, 0.9)
+        color_hover = self.ajustar_brillo(self.color_principal, 1.1)
         self.frame_visualizador.configure(fg_color=self.ajustar_brillo(self.color_secundario, 1.2))
         self.canvas_visualizador.configure(bg=self.color_secundario)
         for barra in self.barras_visualizador:
@@ -562,9 +634,17 @@ class VistaReproductor:
             self.boton_mute,
         ]
         for boton in botones_principales:
-            boton.configure(fg_color=self.color_principal, hover_color=self.ajustar_brillo(self.color_principal, 1.2))
-        self.boton_me_gusta.configure(fg_color="#FF0000", hover_color="#FF3333")
-        self.boton_favorito.configure(fg_color="#FFD700", hover_color="#FFED4A")
+            boton.configure(
+                fg_color=self.color_principal,
+                hover_color=self.ajustar_brillo(self.color_principal, 1.2),
+                text_color=self.obtener_color_texto(self.color_principal[1:]),
+            )
+        self.boton_me_gusta.configure(
+            fg_color="#FF0000", hover_color="#FF3333", text_color=self.obtener_color_texto("FF0000")
+        )
+        self.boton_favorito.configure(
+            fg_color="#FFD700", hover_color="#FFED4A", text_color=self.obtener_color_texto("FFD700")
+        )
         self.entrada_busqueda.configure(
             border_color=self.color_principal, fg_color=self.ajustar_brillo(self.color_secundario, 1.2)
         )
@@ -573,10 +653,51 @@ class VistaReproductor:
             border_color=self.color_principal,
             button_hover_color=self.ajustar_brillo(self.color_principal, 1.2),
             fg_color=self.ajustar_brillo(self.color_secundario, 1.2),
+            dropdown_fg_color=self.ajustar_brillo(self.color_secundario, 1.2),
+            dropdown_hover_color=self.ajustar_brillo(self.color_principal, 0.9),
+            text_color=self.obtener_color_texto(self.color_secundario[1:]),
         )
-        self.notebook.configure(segmented_button_selected_color=self.color_principal)
-        for lista in [self.lista_canciones, self.lista_me_gusta, self.lista_favoritos, self.lista_personalizadas]:
-            lista.configure(fg_color=self.ajustar_brillo(self.color_secundario, 0.8))
+        self.notebook.configure(
+            segmented_button_selected_color=self.color_principal,
+            segmented_button_fg_color=self.ajustar_brillo(self.color_secundario, 1.1),
+            fg_color=self.ajustar_brillo(self.color_secundario, 0.9),
+            segmented_button_selected_hover_color=self.ajustar_brillo(self.color_principal, 1.1),
+            segmented_button_unselected_color=self.ajustar_brillo(self.color_secundario, 1.1),
+            segmented_button_unselected_hover_color=self.ajustar_brillo(self.color_secundario, 1.2),
+            text_color=self.obtener_color_texto(self.color_secundario[1:]),
+        )
+        for lista in [self.lista_canciones, self.lista_me_gusta, self.lista_favoritos]:
+            lista.configure(fg_color=color_frames)
+            for widget in lista.winfo_children():
+                if isinstance(widget, tk.Canvas):
+                    widget.configure(bg=color_frames)
+                    for item in widget.winfo_children():
+                        if isinstance(item, ctk.CTkFrame):
+                            item.configure(fg_color=color_frames)
+                            for boton in item.winfo_children():
+                                if isinstance(boton, ctk.CTkButton):
+                                    boton.configure(
+                                        fg_color=color_botones,
+                                        hover_color=color_hover,
+                                        text_color=self.obtener_color_texto(color_botones[1:]),
+                                    )
+        self.lista_personalizadas.configure(fg_color=color_frames)
+        for boton in self.botones_listas_personalizadas:
+            boton.configure(
+                fg_color=color_botones, hover_color=color_hover, text_color=self.obtener_color_texto(color_botones[1:])
+            )
+        botones_inferiores = [
+            self.boton_seleccionar_carpeta,
+            self.boton_importar,
+            self.boton_exportar,
+            self.boton_nueva_lista,
+            self.boton_eliminar_lista,
+            self.boton_modificar_lista,
+        ]
+        for boton in botones_inferiores:
+            boton.configure(
+                fg_color=color_botones, hover_color=color_hover, text_color=self.obtener_color_texto(color_botones[1:])
+            )
         self.actualizar_lista_canciones(self.controlador.modelo.canciones)
         self.actualizar_tooltips()
 
@@ -584,11 +705,16 @@ class VistaReproductor:
         for widget in self.lista_personalizadas.winfo_children():
             widget.destroy()
         self.botones_listas_personalizadas = []
+        color_botones = self.ajustar_brillo(self.color_principal, 0.9)
+        color_hover = self.ajustar_brillo(self.color_principal, 1.1)
         for nombre in listas.keys():
             boton = CTkButton(
                 self.lista_personalizadas,
                 text=nombre,
                 command=lambda n=nombre: self.controlador.seleccionar_lista_personalizada(n),
+                fg_color=color_botones,
+                hover_color=color_hover,
+                text_color=self.obtener_color_texto(color_botones[1:]),
             )
             boton.pack(fill=tk.X, pady=2)
             self.botones_listas_personalizadas.append(boton)
@@ -606,40 +732,25 @@ class VistaReproductor:
         )
 
     def actualizar_boton_aleatorio(self, activo):
-        self.boton_aleatorio.configure(
-            fg_color=self.color_principal if activo else self.ajustar_brillo(self.color_secundario, 1.2)
-        )
+        color = self.color_principal if activo else self.ajustar_brillo(self.color_secundario, 1.2)
+        self.boton_aleatorio.configure(fg_color=color, text_color=self.obtener_color_texto(color[1:]))
 
     def actualizar_boton_repetir(self, estado):
         if isinstance(estado, bool):
             estado = "none" if not estado else "all"
         iconos_repetir = {"none": "🔁", "one": "🔂", "all": "↻"}
+        color = self.color_principal if estado != "none" else self.ajustar_brillo(self.color_secundario, 1.2)
         self.boton_repetir.configure(
-            text=iconos_repetir[estado],
-            fg_color=self.color_principal if estado != "none" else self.ajustar_brillo(self.color_secundario, 1.2),
+            text=iconos_repetir[estado], fg_color=color, text_color=self.obtener_color_texto(color[1:])
         )
 
-    def actualizar_volumen(self, volumen):
-        porcentaje = int(volumen * 100)
-        self.volumen_slider.set(porcentaje)
-        self.label_volumen.configure(text=f"{porcentaje}%")
-        self.actualizar_icono_volumen(volumen)
-
     def actualizar_boton_me_gusta(self, activo):
-        self.boton_me_gusta.configure(fg_color="#FF0000" if activo else self.ajustar_brillo(self.color_secundario, 1.2))
+        color = "#FF0000" if activo else self.ajustar_brillo(self.color_secundario, 1.2)
+        self.boton_me_gusta.configure(fg_color=color, text_color=self.obtener_color_texto(color.replace("#", "")))
 
     def actualizar_boton_favorito(self, activo):
-        self.boton_favorito.configure(fg_color="#FFD700" if activo else self.ajustar_brillo(self.color_secundario, 1.2))
-
-    def actualizar_icono_volumen(self, volumen):
-        if volumen == 0:
-            self.boton_mute.configure(text=self.iconos["silencio"])
-        elif volumen < 0.33:
-            self.boton_mute.configure(text="🔈")
-        elif volumen < 0.66:
-            self.boton_mute.configure(text="🔉")
-        else:
-            self.boton_mute.configure(text=self.iconos["volumen"])
+        color = "#FFD700" if activo else self.ajustar_brillo(self.color_secundario, 1.2)
+        self.boton_favorito.configure(fg_color=color, text_color=self.obtener_color_texto(color.replace("#", "")))
 
     def seleccionar_directorio(self):
         return ctk.filedialog.askdirectory()
@@ -672,14 +783,17 @@ class VistaReproductor:
         dialog.title(titulo)
         dialog.geometry("400x250")
         dialog.grab_set()
-        frame = ctk.CTkFrame(dialog, fg_color="#1E1E1E")
+        frame = ctk.CTkFrame(dialog, fg_color=self.ajustar_brillo(self.color_secundario, 0.8))
         frame.pack(padx=20, pady=20, fill="both", expand=True)
-        ctk.CTkLabel(frame, text=mensaje, font=("Roboto", 14)).pack(pady=15)
+        ctk.CTkLabel(
+            frame, text=mensaje, font=("Roboto", 14), text_color=self.obtener_color_texto(self.color_secundario[1:])
+        ).pack(pady=15)
         return dialog, frame
 
     def mostrar_dialogo_formato(self):
         dialog, frame = self._crear_dialogo_personalizado("Exportar Lista", "Seleccione formato de exportación:")
         formato = tk.StringVar(value="txt")
+        color_botones = self.ajustar_brillo(self.color_principal, 0.9)
         for valor in ["txt", "json"]:
             ctk.CTkRadioButton(
                 frame,
@@ -687,8 +801,9 @@ class VistaReproductor:
                 variable=formato,
                 value=valor,
                 font=("Roboto", 13),
-                fg_color="#1DB954",
-                border_color="#1DB954",
+                fg_color=self.color_principal,
+                border_color=self.color_principal,
+                text_color=self.obtener_color_texto(self.color_principal[1:]),
             ).pack(pady=5)
         result = tk.StringVar()
 
@@ -702,6 +817,8 @@ class VistaReproductor:
 
         btn_frame = ctk.CTkFrame(frame, fg_color="transparent")
         btn_frame.pack(pady=15)
+        color_botones = self.ajustar_brillo(self.color_principal, 0.9)
+        color_hover = self.ajustar_brillo(self.color_principal, 1.1)
         for texto, comando in [("Aceptar", aceptar), ("Cancelar", cancelar)]:
             ctk.CTkButton(
                 btn_frame,
@@ -710,8 +827,9 @@ class VistaReproductor:
                 width=100,
                 height=35,
                 font=("Roboto", 13),
-                fg_color="#282828",
-                hover_color="#383838",
+                fg_color=color_botones,
+                hover_color=color_hover,
+                text_color=self.obtener_color_texto(color_botones[1:]),
             ).pack(side=tk.LEFT, padx=5)
         dialog.wait_window()
         return result.get() if result.get() else None
@@ -724,14 +842,26 @@ class VistaReproductor:
 
     def mostrar_cola(self, cola):
         dialog, frame = self._crear_dialogo_personalizado("Cola de Reproducción", "Canciones en cola:")
-        lista_frame = ctk.CTkScrollableFrame(frame, height=200, fg_color="#282828", corner_radius=8)
+        color_frame = self.ajustar_brillo(self.color_secundario, 0.8)
+        color_botones = self.ajustar_brillo(self.color_principal, 0.9)
+        color_hover = self.ajustar_brillo(self.color_principal, 1.1)
+        lista_frame = ctk.CTkScrollableFrame(frame, height=200, fg_color=color_frame, corner_radius=8)
         lista_frame.pack(fill="both", expand=True, pady=10)
         if not cola:
-            ctk.CTkLabel(lista_frame, text="La cola está vacía", font=("Roboto", 13)).pack(pady=10)
+            ctk.CTkLabel(
+                lista_frame,
+                text="La cola está vacía",
+                font=("Roboto", 13),
+                text_color=self.obtener_color_texto(color_frame[1:]),
+            ).pack(pady=10)
         else:
             for cancion in cola:
                 ctk.CTkLabel(
-                    lista_frame, text=f"{cancion.titulo} - {cancion.artista}", font=("Roboto", 13), anchor="w"
+                    lista_frame,
+                    text=f"{cancion.titulo} - {cancion.artista}",
+                    font=("Roboto", 13),
+                    anchor="w",
+                    text_color=self.obtener_color_texto(color_frame[1:]),
                 ).pack(pady=2, padx=10, anchor="w")
         ctk.CTkButton(
             dialog,
@@ -740,8 +870,9 @@ class VistaReproductor:
             width=100,
             height=35,
             font=("Roboto", 13),
-            fg_color="#282828",
-            hover_color="#383838",
+            fg_color=color_botones,
+            hover_color=color_hover,
+            text_color=self.obtener_color_texto(color_botones[1:]),
         ).pack(pady=10)
 
     def _configurar_listas_personalizadas(self):
